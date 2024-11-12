@@ -1,6 +1,6 @@
 #include <stddef.h> // NULL
-#include "patch.h"
-#include "find.h"
+#include "patcher/patch.h"
+#include "patcher/find.h"
 //#include "debug_file.h"
 
 //

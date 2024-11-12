@@ -1,132 +1,116 @@
-/*---------------------------------------------------------------------------------
+// SPDX-License-Identifier: Zlib
+// SPDX-FileNotice: Modified from the original version by the BlocksDS project.
+//
+// Copyright (C) 2005 Michael Noland (Joat)
+// Copyright (C) 2005 Jason Rogers (Dovoto)
+// Copyright (C) 2005 Dave Murphy (WinterMute)
+// Copyright (C) 2023 Antonio Niño Díaz
 
-	Copyright (C) 2005
-		Michael Noland (Joat)
-		Jason Rogers (Dovoto)
-		Dave Murphy (WinterMute)
-
-	This software is provided 'as-is', without any express or implied
-	warranty.  In no event will the authors be held liable for any
-	damages arising from the use of this software.
-
-	Permission is granted to anyone to use this software for any
-	purpose, including commercial applications, and to alter it and
-	redistribute it freely, subject to the following restrictions:
-
-	1.	The origin of this software must not be misrepresented; you
-			must not claim that you wrote the original software. If you use
-			this software in a product, an acknowledgment in the product
-			documentation would be appreciated but is not required.
-	2.	Altered source versions must be plainly marked as such, and
-			must not be misrepresented as being the original software.
-	3.	This notice may not be removed or altered from any source
-			distribution.
-
----------------------------------------------------------------------------------*/
+#include <time.h>
 
 #include <nds/arm7/clock.h>
-#include <nds/ndstypes.h>
-
-
+#include <nds/bios.h>
+#include <nds/interrupts.h>
+#include <nds/ipc.h>
+#include <nds/timers.h>
+#include <nds/system.h>
 
 // Delay (in swiDelay units) for each bit transfer
 #define RTC_DELAY 48
 
-// Pin defines on RTC_CR
-#define CS_0    (1<<6)
-#define CS_1    ((1<<6) | (1<<2))
-#define SCK_0   (1<<5)
-#define SCK_1   ((1<<5) | (1<<1))
-#define SIO_0   (1<<4)
-#define SIO_1   ((1<<4) | (1<<0))
-#define SIO_out (1<<4)
-#define SIO_in  (1)
-
-//---------------------------------------------------------------------------------
-void BCDToInteger(uint8 * data, uint32 length) {
-//---------------------------------------------------------------------------------
-	u32 i;
-	for (i = 0; i < length; i++) {
-		data[i] = (data[i] & 0xF) + ((data[i] & 0xF0)>>4)*10;
-	}
+void BCDToInteger(uint8_t *data, uint32_t length)
+{
+    for (u32 i = 0; i < length; i++)
+        data[i] = (data[i] & 0xF) + ((data[i] & 0xF0) >> 4) * 10;
 }
 
-//---------------------------------------------------------------------------------
-void rtcTransaction(uint8 * command, uint32 commandLength, uint8 * result, uint32 resultLength) {
-//---------------------------------------------------------------------------------
-	uint32 bit;
-	uint8 data;
+void rtcTransaction(uint8_t *command, uint32_t commandLength, uint8_t *result,
+                    uint32_t resultLength)
+{
+    uint32_t bit;
+    uint8_t data;
 
-	// Raise CS
-	RTC_CR8 = CS_0 | SCK_1 | SIO_1;
-	swiDelay(RTC_DELAY);
-	RTC_CR8 = CS_1 | SCK_1 | SIO_1;
-	swiDelay(RTC_DELAY);
+    // Raise CS
+    REG_RTCCNT8 = RTCCNT_CS_0 | RTCCNT_SCK_1 | RTCCNT_SIO_1;
+    swiDelay(RTC_DELAY);
+    REG_RTCCNT8 = RTCCNT_CS_1 | RTCCNT_SCK_1 | RTCCNT_SIO_1;
+    swiDelay(RTC_DELAY);
 
-	// Write command byte (high bit first)
-		data = *command++;
+    // Write command byte (high bit first)
+    data = *command++;
 
-		for (bit = 0; bit < 8; bit++) {
-			RTC_CR8 = CS_1 | SCK_0 | SIO_out | (data>>7);
-			swiDelay(RTC_DELAY);
+    for (bit = 0; bit < 8; bit++)
+    {
+        REG_RTCCNT8 = RTCCNT_CS_1 | RTCCNT_SCK_0 | RTCCNT_SIO_OUT | (data >> 7);
+        swiDelay(RTC_DELAY);
 
-			RTC_CR8 = CS_1 | SCK_1 | SIO_out | (data>>7);
-			swiDelay(RTC_DELAY);
+        REG_RTCCNT8 = RTCCNT_CS_1 | RTCCNT_SCK_1 | RTCCNT_SIO_OUT | (data >> 7);
+        swiDelay(RTC_DELAY);
 
-			data = data << 1;
-		}
-	// Write parameter bytes (low bit first)
-	for ( ; commandLength > 1; commandLength--) {
-		data = *command++;
+        data = data << 1;
+    }
 
-		for (bit = 0; bit < 8; bit++) {
-			RTC_CR8 = CS_1 | SCK_0 | SIO_out | (data & 1);
-			swiDelay(RTC_DELAY);
+    // Write parameter bytes (low bit first)
+    for (; commandLength > 1; commandLength--)
+    {
+        data = *command++;
 
-			RTC_CR8 = CS_1 | SCK_1 | SIO_out | (data & 1);
-			swiDelay(RTC_DELAY);
+        for (bit = 0; bit < 8; bit++)
+        {
+            REG_RTCCNT8 = RTCCNT_CS_1 | RTCCNT_SCK_0 | RTCCNT_SIO_OUT | (data & 1);
+            swiDelay(RTC_DELAY);
 
-			data = data >> 1;
-		}
-	}
+            REG_RTCCNT8 = RTCCNT_CS_1 | RTCCNT_SCK_1 | RTCCNT_SIO_OUT | (data & 1);
+            swiDelay(RTC_DELAY);
 
-	// Read result bytes (low bit first)
-	for ( ; resultLength > 0; resultLength--) {
-		data = 0;
+            data = data >> 1;
+        }
+    }
 
-		for (bit = 0; bit < 8; bit++) {
-			RTC_CR8 = CS_1 | SCK_0;
-			swiDelay(RTC_DELAY);
+    // Read result bytes (low bit first)
+    for (; resultLength > 0; resultLength--)
+    {
+        data = 0;
 
-			RTC_CR8 = CS_1 | SCK_1;
-			swiDelay(RTC_DELAY);
+        for (bit = 0; bit < 8; bit++)
+        {
+            REG_RTCCNT8 = RTCCNT_CS_1 | RTCCNT_SCK_0;
+            swiDelay(RTC_DELAY);
 
-			if (RTC_CR8 & SIO_in) data |= (1 << bit);
-		}
-		*result++ = data;
-	}
+            REG_RTCCNT8 = RTCCNT_CS_1 | RTCCNT_SCK_1;
+            swiDelay(RTC_DELAY);
 
-	// Finish up by dropping CS low
-	RTC_CR8 = CS_0 | SCK_1;
-	swiDelay(RTC_DELAY);
+            if (REG_RTCCNT8 & RTCCNT_SIO)
+                data |= (1 << bit);
+        }
+        *result++ = data;
+    }
+
+    // Finish up by dropping CS low
+    REG_RTCCNT8 = RTCCNT_CS_0 | RTCCNT_SCK_1;
+    swiDelay(RTC_DELAY);
 }
 
+void rtcTimeAndDateGet(rtcTimeAndDate *rtc)
+{
+    uint8_t command, status, response[7];
 
-//---------------------------------------------------------------------------------
-void rtcGetTimeAndDate(uint8 * time) {
-//---------------------------------------------------------------------------------
-	uint8 command, status;
+    command = READ_TIME_AND_DATE;
+    rtcTransaction(&command, 1, response, 7);
 
-	command = READ_TIME_AND_DATE;
-	rtcTransaction(&command, 1, time, 7);
+    command = READ_STATUS_REG1;
+    rtcTransaction(&command, 1, &status, 1);
 
-	command = READ_STATUS_REG1;
-	rtcTransaction(&command, 1, &status, 1);
+    if (status & STATUS_24HRS)
+        response[4] &= 0x3f;
 
-	if ( status & STATUS_24HRS ) {
-		time[4] &= 0x3f;
-	} else {
+    BCDToInteger(response, 7);
 
-	}
-	BCDToInteger(time,7);
+    rtc->year = response[0];
+    rtc->month = response[1];
+    rtc->day = response[2];
+    rtc->weekday = response[3];
+    rtc->hours = response[4];
+    rtc->minutes = response[5];
+    rtc->seconds = response[6];
 }

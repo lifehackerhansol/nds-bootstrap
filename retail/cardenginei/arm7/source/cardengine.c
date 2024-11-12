@@ -28,7 +28,6 @@
 #include <nds/arm7/audio.h>
 #include <nds/arm7/i2c.h>
 #include <nds/memory.h> // tNDSHeader
-#include <nds/debug.h>
 
 #include "ndma.h"
 #include "tonccpy.h"
@@ -41,14 +40,15 @@
 #include "cardengine.h"
 #include "nds_header.h"
 #include "igm_text.h"
+#include "nocashMessage.h"
 
 #ifndef TWLSDK
 // Patcher
-#include "common.h"
-#include "decompress.h"
-#include "patch.h"
-#include "find.h"
-#include "hook.h"
+#include "patcher/common.h"
+#include "patcher/decompress.h"
+#include "patcher/patch.h"
+#include "patcher/find.h"
+#include "patcher/hook.h"
 #endif
 
 // TWL soft-reset

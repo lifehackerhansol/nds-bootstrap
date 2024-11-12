@@ -32,6 +32,6 @@ void setExceptionHandler2() {
 
 	exceptionStack = (u32)EXCEPTION_STACK_LOCATION_SDK5;
 	EXCEPTION_VECTOR = (ce9->valueBits & bypassExceptionHandler) ? 0 : enterException;
-	*exceptionC = userException;
+	exceptionC = userException;
 }
 

@@ -21,7 +21,6 @@
 ------------------------------------------------------------------*/
 #ifndef NO_DLDI
 #include <string.h>
-#include <nds.h>
 #include "dldi_patcher.h"
 #include "tonccpy.h"
 

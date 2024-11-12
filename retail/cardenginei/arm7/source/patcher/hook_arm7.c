@@ -25,10 +25,10 @@
 //#include "debug_file.h"
 #include "nds_header.h"
 #include "cardengine_header_arm7.h"
-#include "common.h"
-#include "patch.h"
-#include "find.h"
-#include "hook.h"
+#include "patcher/common.h"
+#include "patcher/patch.h"
+#include "patcher/find.h"
+#include "patcher/hook.h"
 
 static const int MAX_HANDLER_LEN = 50;
 

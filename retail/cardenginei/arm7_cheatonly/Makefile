@@ -1,143 +1,191 @@
-#---------------------------------------------------------------------------------
-.SUFFIXES:
-#---------------------------------------------------------------------------------
+# SPDX-License-Identifier: CC0-1.0
+#
+# SPDX-FileContributor: Antonio Niño Díaz, 2023
 
-ifeq ($(strip $(DEVKITARM)),)
-$(error "Please set DEVKITARM in your environment. export DEVKITARM=<path to>devkitARM")
-endif
+export BLOCKSDS			?= /opt/blocksds/core
+export BLOCKSDSEXT		?= /opt/blocksds/external
 
-include $(DEVKITARM)/ds_rules
+export WONDERFUL_TOOLCHAIN	?= /opt/wonderful
+ARM_NONE_EABI_PATH	?= $(WONDERFUL_TOOLCHAIN)/toolchain/gcc-arm-none-eabi/bin/
 
-ifeq ($(OS),Windows_NT)
-LZSS			?=	../../../../lzss.exe
+# Source code paths
+# -----------------
 
+CARDENGINE	?= arm7_cheatonly
+SOURCEDIRS	:= cardenginei/arm7_cheatonly/source
+INCLUDEDIRS	:= cardenginei/arm7_cheatonly/include common/include
+BINDIRS		:=
+
+# Defines passed to all files
+# ---------------------------
+
+DEFINES		:= -DARM7
+
+# Libraries
+# ---------
+
+LIBS		:=
+LIBDIRS		:= $(BLOCKSDS)/libs/libnds
+
+# Build artifacts
+# -----------------
+
+NAME		:= cardenginei_$(CARDENGINE)
+BUILDDIR	:= build/$(NAME)
+LZ77    := nitrofiles/$(NAME).lz77
+BIN     := build/$(NAME).bin
+ELF		:= build/$(NAME).elf
+DUMP		:= build/$(NAME).dump
+MAP		:= build/$(NAME).map
+
+# Tools
+# -----
+
+PREFIX		:= $(ARM_NONE_EABI_PATH)arm-none-eabi-
+CC		:= $(PREFIX)gcc
+CXX		:= $(PREFIX)g++
+LD		:= $(PREFIX)gcc
+OBJCOPY		:= $(PREFIX)objcopy
+OBJDUMP		:= $(PREFIX)objdump
+MKDIR		:= mkdir
+RM		:= rm -rf
+LZSS	:=  $(WONDERFUL_TOOLCHAIN)/bin/wf-nnpack-lzss
+
+# Verbose flag
+# ------------
+
+ifeq ($(VERBOSE),1)
+V		:=
 else
-
-LZSS			?=	lzss
-
+V		:= @
 endif
-#---------------------------------------------------------------------------------
-# BUILD is the directory where object files & intermediate files will be placed
-# SOURCES is a list of directories containing source code
-# INCLUDES is a list of directories containing extra header files
-# DATA is a list of directories containing binary files
-# all directories are relative to this makefile
-#---------------------------------------------------------------------------------
-BUILD			:=	build
-SOURCES			:=	source
-INCLUDES		:=	include ../../common/include
-DATA			:=	data
 
+# Source files
+# ------------
 
-#---------------------------------------------------------------------------------
-# options for code generation
-#---------------------------------------------------------------------------------
-ARCH	:=	-mthumb-interwork -march=armv4t
-
-CFLAGS	:=	-g -Wall -O2\
-			-mcpu=arm7tdmi -mtune=arm7tdmi -fomit-frame-pointer\
-			-ffast-math \
-			$(ARCH)
-
-# ADD -DDEBUG here for logging/debug
-CFLAGS	+=	$(INCLUDE) -DARM7
-CXXFLAGS	:=	$(CFLAGS) -fno-rtti -fno-exceptions
-
-ASFLAGS	:=	-g $(ARCH) $(INCLUDE)
-LDFLAGS	=	-nostartfiles -T cardengine.ld -g $(ARCH) -Wl,--nmagic -Wl,-Map,$(notdir $*).map
-
-#---------------------------------------------------------------------------------
-# any extra libraries we wish to link with the project
-#---------------------------------------------------------------------------------
-LIBS	:=
-
-#---------------------------------------------------------------------------------
-# list of directories containing libraries, this must be the top level containing
-# include and lib
-#---------------------------------------------------------------------------------
-LIBDIRS	:=	$(LIBNDS)
- 
-  
-#---------------------------------------------------------------------------------
-# no real need to edit anything past this point unless you need to add additional
-# rules for different file extensions
-#---------------------------------------------------------------------------------
-ifneq ($(BUILD),$(notdir $(CURDIR)))
-#---------------------------------------------------------------------------------
-
-export TARGET	:=	cardenginei_arm7_cheatonly
-export OUTPUT	:=	$(CURDIR)/../../nitrofiles/$(TARGET)
-export DEPSDIR	:=	$(CURDIR)/$(BUILD)
-
-export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
-					$(foreach dir,$(DATA),$(CURDIR)/$(dir))
-
-CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
-CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
-SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
-BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
-
-export OFILES	:=	$(addsuffix .o,$(BINFILES)) \
-					$(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
-
-export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
-					$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
-					-I$(CURDIR)/$(BUILD)
-
-export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
-
-#---------------------------------------------------------------------------------
-# use CXX for linking C++ projects, CC for standard C
-#---------------------------------------------------------------------------------
-ifeq ($(strip $(CPPFILES)),)
-#---------------------------------------------------------------------------------
-	export LD	:=	$(CC)
-#---------------------------------------------------------------------------------
-else
-#---------------------------------------------------------------------------------
-	export LD	:=	$(CXX)
-#---------------------------------------------------------------------------------
+ifneq ($(BINDIRS),)
+    SOURCES_BIN	:= $(shell find -L $(BINDIRS) -name "*.bin")
+    INCLUDEDIRS	+= $(addprefix $(BUILDDIR)/,$(BINDIRS))
 endif
-#---------------------------------------------------------------------------------
 
-.PHONY: $(BUILD) clean
- 
-#---------------------------------------------------------------------------------
-$(BUILD):
-	@[ -d $@ ] || mkdir -p $@
-	@$(MAKE) -C $(BUILD) -f $(CURDIR)/Makefile
+SOURCES_S	:= $(shell find -L $(SOURCEDIRS) -name "*.s")
+SOURCES_C	:= $(shell find -L $(SOURCEDIRS) -name "*.c")
+SOURCES_CPP	:= $(shell find -L $(SOURCEDIRS) -name "*.cpp")
 
-#---------------------------------------------------------------------------------
+# Compiler and linker flags
+# -------------------------
+
+ARCH		:= -mthumb-interwork -mcpu=arm7tdmi
+
+WARNFLAGS	:= -Wall
+
+INCLUDEFLAGS	:= $(foreach path,$(INCLUDEDIRS),-I$(path)) \
+		   $(foreach path,$(LIBDIRS),-I$(path)/include)
+
+LIBDIRSFLAGS	:= $(foreach path,$(LIBDIRS),-L$(path)/lib)
+
+ASFLAGS		+= -x assembler-with-cpp $(DEFINES) $(INCLUDEFLAGS) \
+		   $(ARCH)
+
+CFLAGS		+= -std=gnu17 $(WARNFLAGS) $(DEFINES) $(INCLUDEFLAGS) \
+		   $(ARCH) -O2
+
+CXXFLAGS	+= -std=gnu++17 $(WARNFLAGS) $(DEFINES) $(INCLUDEFLAGS) \
+		   $(ARCH) -O2 \
+		   -fno-exceptions -fno-rtti
+
+LDFLAGS		:= $(ARCH) $(LIBDIRSFLAGS) -Wl,-Map,$(MAP) $(DEFINES) \
+		   -Wl,--start-group $(LIBS) -Wl,--end-group -nostartfiles
+
+# Intermediate build files
+# ------------------------
+
+OBJS_ASSETS	:= $(addsuffix .o,$(addprefix $(BUILDDIR)/,$(SOURCES_BIN)))
+
+HEADERS_ASSETS	:= $(patsubst %.bin,%_bin.h,$(addprefix $(BUILDDIR)/,$(SOURCES_BIN)))
+
+OBJS_SOURCES	:= $(addsuffix .o,$(addprefix $(BUILDDIR)/,$(SOURCES_S))) \
+		   $(addsuffix .o,$(addprefix $(BUILDDIR)/,$(SOURCES_C))) \
+		   $(addsuffix .o,$(addprefix $(BUILDDIR)/,$(SOURCES_CPP)))
+
+OBJS		:= $(OBJS_ASSETS) $(OBJS_SOURCES)
+
+DEPS		:= $(OBJS:.o=.d)
+
+# Targets
+# -------
+
+.PHONY: all clean dump
+
+all: $(LZ77)
+
+$(LZ77): $(BIN)
+	@echo "  LZSS.7    $@"
+	$(V)$(LZSS) -ewn $< $@
+
+$(BIN): $(ELF)
+	@echo "  OBJCOPY.7 $@"
+	$(V)$(OBJCOPY) -O binary $< $@
+
+$(ELF): $(BUILDDIR)/cardengine.ld $(OBJS)
+	@echo "  LD.7    $@"
+	$(V)$(LD) -o $@ $(OBJS) $(LDFLAGS) -T $(BUILDDIR)/cardengine.ld
+
+$(DUMP): $(ELF)
+	@echo "  OBJDUMP.7 $@"
+	$(V)$(OBJDUMP) -h -C -S $< > $@
+
+dump: $(DUMP)
+
 clean:
-	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).arm7
- 
- 
-#---------------------------------------------------------------------------------
-else
- 
-DEPENDS	:=	$(OFILES:.o=.d)
- 
-#---------------------------------------------------------------------------------
-# main targets
-#---------------------------------------------------------------------------------
-$(OUTPUT).bin:	$(DEPSDIR)/$(TARGET).elf
-$(DEPSDIR)/$(TARGET).elf:	cardengine.ld $(OFILES)
-#	@echo linking $(notdir $@)
-#	@$(LD)  $(LDFLAGS) $(OFILES) $(LIBPATHS) $(LIBS) -o $@
+	@echo "  CLEAN.7"
+	$(V)$(RM) $(LZ77) $(BIN) $(ELF) $(DUMP) $(MAP) $(BUILDDIR)
 
-cardengine.ld:	$(CURDIR)/../cardengine.ld.in
-	$(CPP) -P $(INCLUDE) $< $@
+# Rules
+# -----
 
+$(BUILDDIR)/cardengine.ld:	cardenginei/$(CARDENGINE)/cardengine.ld.in
+	@echo "  CPP.7   $<"
+	@$(MKDIR) -p $(@D)
+	$(V)$(CPP) $(INCLUDEFLAGS) $< > $@
 
-#---------------------------------------------------------------------------------
-%.bin	:	%.elf
-#---------------------------------------------------------------------------------
-	@$(OBJCOPY) -O binary $< $@
-	@echo built ... $(notdir $@)
+$(BUILDDIR)/%.s.o : %.s
+	@echo "  AS.7    $<"
+	@$(MKDIR) -p $(@D)
+	$(V)$(CC) $(ASFLAGS) -MMD -MP -c -o $@ $<
 
--include $(DEPENDS)
- 
-#---------------------------------------------------------------------------------------
-endif
-#---------------------------------------------------------------------------------------
+$(BUILDDIR)/%.c.o : %.c
+	@echo "  CC.7    $<"
+	@$(MKDIR) -p $(@D)
+	$(V)$(CC) $(CFLAGS) -MMD -MP -c -o $@ $<
+
+$(BUILDDIR)/%.arm.c.o : %.arm.c
+	@echo "  CC.7    $<"
+	@$(MKDIR) -p $(@D)
+	$(V)$(CC) $(CFLAGS) -MMD -MP -marm -mlong-calls -c -o $@ $<
+
+$(BUILDDIR)/%.cpp.o : %.cpp
+	@echo "  CXX.7   $<"
+	@$(MKDIR) -p $(@D)
+	$(V)$(CXX) $(CXXFLAGS) -MMD -MP -c -o $@ $<
+
+$(BUILDDIR)/%.arm.cpp.o : %.arm.cpp
+	@echo "  CXX.7   $<"
+	@$(MKDIR) -p $(@D)
+	$(V)$(CXX) $(CXXFLAGS) -MMD -MP -marm -mlong-calls -c -o $@ $<
+
+$(BUILDDIR)/%.bin.o $(BUILDDIR)/%_bin.h : %.bin
+	@echo "  BIN2C.7 $<"
+	@$(MKDIR) -p $(@D)
+	$(V)$(BLOCKSDS)/tools/bin2c/bin2c $< $(@D)
+	$(V)$(CC) $(CFLAGS) -MMD -MP -c -o $(BUILDDIR)/$*.bin.o $(BUILDDIR)/$*_bin.c
+
+# All assets must be built before the source code
+# -----------------------------------------------
+
+$(SOURCES_S) $(SOURCES_C) $(SOURCES_CPP): $(HEADERS_ASSETS)
+
+# Include dependency files if they exist
+# --------------------------------------
+
+-include $(DEPS)

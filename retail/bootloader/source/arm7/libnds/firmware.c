@@ -21,6 +21,7 @@
       distribution.
 
 ---------------------------------------------------------------------------------*/
+#include <nds/arm7/firmware.h>
 #include <nds/arm7/serial.h>
 #include <nds/interrupts.h>
 #include <nds/system.h>
