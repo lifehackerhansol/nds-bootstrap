@@ -1,0 +1,218 @@
+BOOTLOADER_DEPS	:=	\
+					load \
+					load1 \
+					load2 \
+					loadi \
+					loadi1 \
+					loadi2
+
+CARDENGINE_DEPS	:=	\
+					cardengine_arm7 \
+					cardengine_arm7_music \
+					cardengine_arm9 \
+					cardengine_arm9_32 \
+					cardengine_arm9_alt \
+					cardengine_arm9_alt_gsdd \
+					cardengine_arm9_alt2 \
+					cardengine_arm9_alt3 \
+					cardengine_arm9_extmem \
+					cardengine_arm9_extmem_foto \
+					cardengine_arm9_extmem_gsdd \
+					cardengine_arm9_extmem_start \
+					cardengine_arm9_igm \
+					cardengine_arm9_igm_extmem \
+					cardengine_arm9_start \
+					cardengine_arm9_start_foto
+
+CARDENGINEI_DEPS	:=	\
+					cardenginei_arm7 \
+					cardenginei_arm7_alt \
+					cardenginei_arm7_cheat \
+					cardenginei_arm7_dsiware \
+					cardenginei_arm7_dsiware3 \
+					cardenginei_arm7_twlsdk \
+					cardenginei_arm7_twlsdk3 \
+					cardenginei_arm9 \
+					cardenginei_arm9_dldi \
+					cardenginei_arm9_dsiware \
+					cardenginei_arm9_dsiware3 \
+					cardenginei_arm9_gsdd \
+					cardenginei_arm9_gsdd_dldi \
+					cardenginei_arm9_igm \
+					cardenginei_arm9_twlsdk \
+					cardenginei_arm9_twlsdk_dldi \
+					cardenginei_arm9_twlsdk3 \
+					cardenginei_arm9_twlsdk3_dldi
+
+EXTRA_DEPS		:=	preLoadSettings \
+					apfix
+
+.PHONY: $(BOOTLOADER_DEPS) $(CARDENGINE_DEPS) $(CARDENGINEI_DEPS) $(EXTRA_DEPS)
+
+#---------------------------------------------------------------------------------		
+load:
+	@$(MAKE) -f Makefile.bootloader NAME=$@ DEFINES="-DLOADERTYPE0"
+
+#---------------------------------------------------------------------------------		
+load1:
+	@$(MAKE) -f Makefile.bootloader NAME=$@ DEFINES="-DLOADERTYPE1"
+
+#---------------------------------------------------------------------------------		
+load2:
+	@$(MAKE) -f Makefile.bootloader NAME=$@ DEFINES="-DLOADERTYPE2"
+
+#---------------------------------------------------------------------------------		
+loadi:
+	@$(MAKE) -f Makefile.bootloaderi NAME=$@ DEFINES="-DLOADERTYPE0"
+
+#---------------------------------------------------------------------------------		
+loadi1:
+	@$(MAKE) -f Makefile.bootloaderi NAME=$@ DEFINES="-DLOADERTYPE1"
+
+#---------------------------------------------------------------------------------		
+loadi2:
+	@$(MAKE) -f Makefile.bootloaderi NAME=$@ DEFINES="-DLOADERTYPE2"
+
+#---------------------------------------------------------------------------------		
+cardengine_arm7:
+	@$(MAKE) -f cardengine/arm7/Makefile
+
+#---------------------------------------------------------------------------------		
+cardengine_arm7_music:
+	@$(MAKE) -f cardengine/arm7_music/Makefile
+
+#---------------------------------------------------------------------------------		
+cardengine_arm9:
+	@$(MAKE) -f cardengine/arm9/Makefile
+
+#---------------------------------------------------------------------------------		
+cardengine_arm9_32:
+	@$(MAKE) -f cardengine/arm9_32/Makefile
+
+#---------------------------------------------------------------------------------		
+cardengine_arm9_alt:
+	@$(MAKE) -f cardengine/arm9_alt/Makefile
+
+#---------------------------------------------------------------------------------		
+cardengine_arm9_alt_gsdd:
+	@$(MAKE) -f cardengine/arm9_alt_gsdd/Makefile
+
+#---------------------------------------------------------------------------------		
+cardengine_arm9_alt2:
+	@$(MAKE) -f cardengine/arm9_alt2/Makefile
+
+#---------------------------------------------------------------------------------		
+cardengine_arm9_alt3:
+	@$(MAKE) -f cardengine/arm9_alt3/Makefile
+
+#---------------------------------------------------------------------------------		
+cardengine_arm9_extmem:
+	@$(MAKE) -f cardengine/arm9_extmem/Makefile
+
+#---------------------------------------------------------------------------------		
+cardengine_arm9_extmem_foto:
+	@$(MAKE) -f cardengine/arm9_extmem_foto/Makefile
+
+#---------------------------------------------------------------------------------		
+cardengine_arm9_extmem_gsdd:
+	@$(MAKE) -f cardengine/arm9_extmem_gsdd/Makefile
+
+#---------------------------------------------------------------------------------		
+cardengine_arm9_extmem_start:
+	@$(MAKE) -f cardengine/arm9_extmem_start/Makefile
+
+#---------------------------------------------------------------------------------		
+cardengine_arm9_igm:
+	@$(MAKE) -f cardengine/arm9_igm/Makefile
+
+#---------------------------------------------------------------------------------		
+cardengine_arm9_igm_extmem:
+	@$(MAKE) -f cardengine/arm9_igm_extmem/Makefile
+
+#---------------------------------------------------------------------------------		
+cardengine_arm9_start:
+	@$(MAKE) -f cardengine/arm9_start/Makefile
+
+#---------------------------------------------------------------------------------		
+cardengine_arm9_start_foto:
+	@$(MAKE) -f cardengine/arm9_start_foto/Makefile
+
+#---------------------------------------------------------------------------------		
+cardenginei_arm7:
+	@$(MAKE) -f cardenginei/arm7/Makefile
+
+#---------------------------------------------------------------------------------		
+cardenginei_arm7_alt:
+	@$(MAKE) -f cardenginei/arm7_alt/Makefile
+
+#---------------------------------------------------------------------------------		
+cardenginei_arm7_cheat:
+	@$(MAKE) -f cardenginei/arm7_cheat/Makefile
+
+#---------------------------------------------------------------------------------		
+cardenginei_arm7_dsiware:
+	@$(MAKE) -f cardenginei/arm7_dsiware/Makefile
+
+#---------------------------------------------------------------------------------		
+cardenginei_arm7_dsiware3:
+	@$(MAKE) -f cardenginei/arm7_dsiware3/Makefile
+
+#---------------------------------------------------------------------------------		
+cardenginei_arm7_twlsdk:
+	@$(MAKE) -f cardenginei/arm7_twlsdk/Makefile
+
+#---------------------------------------------------------------------------------		
+cardenginei_arm7_twlsdk3:
+	@$(MAKE) -f cardenginei/arm7_twlsdk3/Makefile
+
+#---------------------------------------------------------------------------------		
+cardenginei_arm9:
+	@$(MAKE) -f cardenginei/arm9/Makefile
+
+#---------------------------------------------------------------------------------		
+cardenginei_arm9_dldi:
+	@$(MAKE) -f cardenginei/arm9_dldi/Makefile
+
+#---------------------------------------------------------------------------------		
+cardenginei_arm9_dsiware:
+	@$(MAKE) -f cardenginei/arm9_dsiware/Makefile
+
+#---------------------------------------------------------------------------------		
+cardenginei_arm9_dsiware3:
+	@$(MAKE) -f cardenginei/arm9_dsiware3/Makefile
+
+#---------------------------------------------------------------------------------		
+cardenginei_arm9_gsdd:
+	@$(MAKE) -f cardenginei/arm9_gsdd/Makefile
+
+#---------------------------------------------------------------------------------		
+cardenginei_arm9_gsdd_dldi:
+	@$(MAKE) -f cardenginei/arm9_gsdd/Makefile
+
+#---------------------------------------------------------------------------------		
+cardenginei_arm9_igm:
+	@$(MAKE) -f cardenginei/arm9_igm/Makefile
+
+#---------------------------------------------------------------------------------		
+cardenginei_arm9_twlsdk:
+	@$(MAKE) -f cardenginei/arm9_twlsdk/Makefile
+
+#---------------------------------------------------------------------------------		
+cardenginei_arm9_twlsdk_dldi:
+	@$(MAKE) -f cardenginei/arm9_twlsdk_dldi/Makefile
+
+#---------------------------------------------------------------------------------		
+cardenginei_arm9_twlsdk3:
+	@$(MAKE) -f cardenginei/arm9_twlsdk3/Makefile
+
+#---------------------------------------------------------------------------------		
+cardenginei_arm9_twlsdk3_dldi:
+	@$(MAKE) -f cardenginei/arm9_twlsdk3_dldi/Makefile
+
+#---------------------------------------------------------------------------------		
+preLoadSettings:
+	@$(MAKE) -C preLoadSettings
+
+#---------------------------------------------------------------------------------		
+apfix:
+	@$(MAKE) -C apfix

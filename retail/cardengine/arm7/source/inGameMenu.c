@@ -91,8 +91,8 @@ void inGameMenu(void) {
 					sharedAddr[6] = (((readPowerManagement(PM_CONTROL_REG) & 0xC) != 0) ? 5 : 0) << 8;
 				}
 
-				RTCtime dstime;
-				rtcGetTimeAndDate((uint8 *)&dstime);
+				rtcTimeAndDate dstime;
+				rtcTimeAndDateGet(&dstime);
 				sharedAddr[7] = dstime.hours;
 				sharedAddr[8] = dstime.minutes;
 				sharedAddr[7] += 0x10000000; // Set time receive flag

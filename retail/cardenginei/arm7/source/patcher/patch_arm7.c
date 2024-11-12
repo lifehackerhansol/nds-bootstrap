@@ -2,9 +2,9 @@
 #include <nds/bios.h>
 #include "nds_header.h"
 #include "module_params.h"
-#include "patch.h"
-#include "find.h"
-#include "common.h"
+#include "patcher/patch.h"
+#include "patcher/find.h"
+#include "patcher/common.h"
 //#include "value_bits.h"
 #include "locations.h"
 #include "tonccpy.h"

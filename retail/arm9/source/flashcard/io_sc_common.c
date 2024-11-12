@@ -27,7 +27,7 @@
  EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "io_sc_common.h"
+#include "flashcard/io_sc_common.h"
 
 /*-----------------------------------------------------------------
 _SC_changeMode (was SC_Unlock)

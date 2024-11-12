@@ -3,9 +3,9 @@
 #include <nds/debug.h>
 #include <nds/system.h>
 //#include "debug_file.h"
-#include "hook.h"
-#include "common.h"
-#include "find.h"
+#include "patcher/hook.h"
+#include "patcher/common.h"
+#include "patcher/find.h"
 #include "nds_header.h"
 #include "cardengine_header_arm9.h"
 
