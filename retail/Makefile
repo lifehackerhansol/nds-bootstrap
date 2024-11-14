@@ -1,11 +1,19 @@
 #---------------------------------------------------------------------------------
 .SUFFIXES:
 #---------------------------------------------------------------------------------
-.SECONDARY:
-
 ifeq ($(strip $(DEVKITARM)),)
 $(error "Please set DEVKITARM in your environment. export DEVKITARM=<path to>devkitARM")
 endif
+
+export TARGET := nds-bootstrap
+export TOPDIR := $(CURDIR)
+
+# GMAE_ICON is the image used to create the game icon, leave blank to use default rule
+GAME_ICON :=
+
+# specify a directory which contains the nitro filesystem
+# this is relative to the Makefile
+NITRO_FILES := nitrofiles
 
 # These set the information text in the nds file
 GAME_TITLE     := nds-bootstrap
@@ -13,96 +21,44 @@ GAME_SUBTITLE1 := ahezard & Rocket Robz
 
 include $(DEVKITARM)/ds_rules
 
-export VERSION_MAJOR	:= 0
-export VERSION_MINOR	:= 17
-export VERSION_PATCH	:= 0
-
-
-VERSION	:=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
-#---------------------------------------------------------------------------------
-# TARGET is the name of the output
-# BUILD is the directory where object files & intermediate files will be placed
-# SOURCES is a list of directories containing source code
-# INCLUDES is a list of directories containing extra header files
-# DATA is a list of directories containing binary files embedded using bin2o
-# GRAPHICS is a list of directories containing image files to be converted with grit
-#---------------------------------------------------------------------------------
-TARGET		:=	nds-bootstrap
 BIN		:=	bin
-ASSETS		:=	assets
-NITRODATA	:=	nitrofiles
+
+.PHONY: all checkarm7 checkarm9 dist release nightly bootloader bootloader1 bootloader2 bootloaderi bootloaderi1 bootloaderi2 cardengine_arm7 cardengine_arm7_music cardengine_arm9_igm cardengine_arm9_igm_extmem cardengine_arm9 cardengine_arm9_32 cardengine_arm9_start cardengine_arm9_start_foto cardengine_arm9_alt cardengine_arm9_alt_gsdd cardengine_arm9_alt2 cardengine_arm9_alt3 cardengine_arm9_extmem cardengine_arm9_extmem_gsdd cardengine_arm9_extmem_start cardengine_arm9_extmem_foto cardenginei_arm7 cardenginei_arm7_alt cardenginei_arm7_twlsdk cardenginei_arm7_twlsdk3 cardenginei_arm7_dsiware cardenginei_arm7_dsiware3 cardenginei_arm7_cheat cardenginei_arm9_igm cardenginei_arm9 cardenginei_arm9_sdk20 cardenginei_arm9_dlp cardenginei_arm9_gsdd cardenginei_arm9_dldi cardenginei_arm9_sdk20_dldi cardenginei_arm9_gsdd_dldi cardenginei_arm9_twlsdk cardenginei_arm9_twlsdk3 cardenginei_arm9_twlsdk_dldi cardenginei_arm9_twlsdk3_dldi cardenginei_arm9_dsiware cardenginei_arm9_dsiware3 preLoadSettings apfix libnds32 arm7/$(TARGET).elf arm9/$(TARGET).elf clean
 
 #---------------------------------------------------------------------------------
-# no real need to edit anything past this point unless you need to add additional
-# rules for different file extensions
+# main targets
 #---------------------------------------------------------------------------------
-ifneq ($(BUILD),$(notdir $(CURDIR)))
-#---------------------------------------------------------------------------------
+all: checkarm7 checkarm9 $(TARGET).nds
 
-export OUTPUT	:=	$(CURDIR)/$(BIN)/$(TARGET).nds
-
-export CC		:=	$(PREFIX)gcc
-export CXX		:=	$(PREFIX)g++
-export AR		:=	$(PREFIX)ar
-export OBJCOPY	:=	$(PREFIX)objcopy
-export CPP		:=	$(PREFIX)cpp
-
-#---------------------------------------------------------------------------------
-# use CXX for linking C++ projects, CC for standard C
-#---------------------------------------------------------------------------------
-ifeq ($(strip $(CPPFILES)),)
-#---------------------------------------------------------------------------------
-	export LD	:=	$(CC)
-#---------------------------------------------------------------------------------
-else
-#---------------------------------------------------------------------------------
-	export LD	:=	$(CXX)
-#---------------------------------------------------------------------------------
-endif
-#---------------------------------------------------------------------------------
-
-#icons := $(wildcard *.bmp)
-#ifneq (,$(findstring $(TARGET).bmp,$(icons)))
-#	export GAME_ICON := $(CURDIR)/$(TARGET).bmp
-#else
-#	ifneq (,$(findstring icon.bmp,$(icons)))
-#		export GAME_ICON := $(CURDIR)/icon.bmp
-#	endif
-#endif
-export GAME_ICON := $(CURDIR)/$(ASSETS)/icon.bmp
-
-#.PHONY: cardengine_arm7 cardengine_arm9 bootloader BootStrap clean
-.PHONY: all dist release nightly bootloader bootloader1 bootloader2 bootloaderi bootloaderi1 bootloaderi2 cardengine_arm7 cardengine_arm7_music cardengine_arm9_igm cardengine_arm9_igm_extmem cardengine_arm9 cardengine_arm9_32 cardengine_arm9_start cardengine_arm9_start_foto cardengine_arm9_alt cardengine_arm9_alt_gsdd cardengine_arm9_alt2 cardengine_arm9_alt3 cardengine_arm9_extmem cardengine_arm9_extmem_gsdd cardengine_arm9_extmem_start cardengine_arm9_extmem_foto cardenginei_arm7 cardenginei_arm7_alt cardenginei_arm7_twlsdk cardenginei_arm7_twlsdk3 cardenginei_arm7_dsiware cardenginei_arm7_dsiware3 cardenginei_arm7_cheat cardenginei_arm9_igm cardenginei_arm9 cardenginei_arm9_sdk20 cardenginei_arm9_dlp cardenginei_arm9_gsdd cardenginei_arm9_dldi cardenginei_arm9_sdk20_dldi cardenginei_arm9_gsdd_dldi cardenginei_arm9_twlsdk cardenginei_arm9_twlsdk3 cardenginei_arm9_twlsdk_dldi cardenginei_arm9_twlsdk3_dldi cardenginei_arm9_dsiware cardenginei_arm9_dsiware3 preLoadSettings apfix libnds32 arm7/$(TARGET).elf arm9/$(TARGET).elf clean
-
-all:	$(OUTPUT)
-
-dist:	all
-#	@rm	-fr	hbmenu
-#	@mkdir hbmenu
-#	@cp hbmenu.nds hbmenu/BOOT.NDS
-#	@cp BootStrap/_BOOT_MP.NDS BootStrap/TTMENU.DAT BootStrap/_DS_MENU.DAT BootStrap/ez5sys.bin BootStrap/akmenu4.nds hbmenu
-#	@tar -cvjf hbmenu-$(VERSION).tar.bz2 hbmenu testfiles README.md COPYING -X exclude.lst
-
-release:	$(OUTPUT)
+release:	$(TARGET).nds
 	@rm -f $(CURDIR)/$(BIN)/$(TARGET)-release.nds
-	@mv $(OUTPUT) $(CURDIR)/$(BIN)/$(TARGET)-release.nds
+	@mv $< $(CURDIR)/$(BIN)/$(TARGET)-release.nds
 
-nightly:	$(OUTPUT)
+nightly:	$(TARGET).nds
 	@rm -f $(CURDIR)/$(BIN)/$(TARGET)-nightly.nds
-	@mv $(OUTPUT) $(CURDIR)/$(BIN)/$(TARGET)-nightly.nds
+	@mv $< $(CURDIR)/$(BIN)/$(TARGET)-nightly.nds
 
-$(OUTPUT):	$(BIN) arm7/$(TARGET).elf arm9/$(TARGET).elf
+#---------------------------------------------------------------------------------
+checkarm7:
+	$(MAKE) -C arm7
+
+#---------------------------------------------------------------------------------
+checkarm9:
+	$(MAKE) -C arm9
+
+#---------------------------------------------------------------------------------
+$(TARGET).nds : $(BIN) $(NITRO_FILES) arm7/$(TARGET).elf arm9/$(TARGET).elf
 	ndstool	-c $(OUTPUT) -7 arm7/$(TARGET).elf -9 arm9/$(TARGET).elf -d $(NITRODATA) \
 			-b $(GAME_ICON) "$(GAME_TITLE);$(GAME_SUBTITLE1)" \
 			-g KBSE 01 "NDSBOOTSTRAP" -z 80040000 -u 00030004 -a 00000138 -p 00000001
 
 #---------------------------------------------------------------------------------
 arm7/$(TARGET).elf:
-	@$(MAKE) -C arm7
-	
+	$(MAKE) -C arm7
+
 #---------------------------------------------------------------------------------
-arm9/$(TARGET).elf:	bootloader bootloader1 bootloader2 bootloaderi bootloaderi1 bootloaderi2 preLoadSettings apfix libnds32
-	@$(MAKE) -C arm9
+arm9/$(TARGET).elf: bootloader bootloader1 bootloader2 bootloaderi bootloaderi1 bootloaderi2 preLoadSettings apfix libnds32
+	$(MAKE) -C arm9
 
 #---------------------------------------------------------------------------------		
 libnds32:
@@ -350,16 +306,3 @@ clean:
 
 $(BIN):
 	@mkdir -p $(BIN)
-
-#---------------------------------------------------------------------------------
-else
-
-#---------------------------------------------------------------------------------
-%.bin.o	:	%.bin
-#---------------------------------------------------------------------------------
-	@echo $(notdir $<)
-	$(bin2o)
-
-#---------------------------------------------------------------------------------------
-endif
-#---------------------------------------------------------------------------------------

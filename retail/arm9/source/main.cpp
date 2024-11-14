@@ -104,13 +104,13 @@ bool extention(const std::string& filename, const char* ext) {
 	}
 }
 
-static void getSFCG_ARM9(void) {
+static void getSCFG_ARM9(void) {
 	iprintf("SCFG_ROM ARM9 %X\n", REG_SCFG_ROM); 
 	iprintf("SCFG_CLK ARM9 %X\n", REG_SCFG_CLK); 
 	//iprintf("SCFG_EXT ARM9 %X\n", REG_SCFG_EXT); 
 }
 
-static void getSFCG_ARM7(void) {
+static void getSCFG_ARM7(void) {
 	//iprintf("SCFG_ROM ARM7\n");
 
 	//nocashMessage("fifoSendValue32(FIFO_USER_01, MSG_SCFG_ROM);\n");
@@ -120,18 +120,15 @@ static void getSFCG_ARM7(void) {
 
 	iprintf("SCFG_CLK ARM7\n");
 
-	nocashMessage("fifoSendValue32(FIFO_USER_01, MSG_SCFG_CLK);\n");
-	fifoSendValue32(FIFO_USER_01, (u32)&REG_SCFG_CLK);
+	nocashMessage("pxiSendAndReceive(PxiChannel_User0, 1);\n");
+	u32 data = pxiSendAndReceive(PxiChannel_User0, 1);
+	iprintf("ARM7 data %lX\n", data);
 
 	iprintf("SCFG_EXT ARM7\n");
 
-	nocashMessage("fifoSendValue32(FIFO_USER_01, MSG_SCFG_EXT);\n");
-	fifoSendValue32(FIFO_USER_01, (u32)&REG_SCFG_EXT);
-}
-
-static void myFIFOValue32Handler(u32 value, void* userdata) {
-	nocashMessage("myFIFOValue32Handler\n");
-	iprintf("ARM7 data %lX\n", value);
+	nocashMessage("pxiSendAndReceive(PxiChannel_User0, 2);\n");
+	data = pxiSendAndReceive(PxiChannel_User0, 2);
+	iprintf("ARM7 data %lX\n", data);
 }
 
 static inline void debugConfB4DS(configuration* conf) {
@@ -215,10 +212,8 @@ static int runNdsFile(configuration* conf) {
 		consoleDemoInit();
 
 		if (dsiFeatures()) {
-			fifoSetValue32Handler(FIFO_USER_02, myFIFOValue32Handler, NULL);
-
-			getSFCG_ARM9();
-			getSFCG_ARM7();
+			getSCFG_ARM9();
+			getSCFG_ARM7();
 
 			/*for (int i = 0; i < 60; i++) {
 				swiWaitForVBlank();
@@ -341,7 +336,7 @@ static int runNdsFile(configuration* conf) {
 			setCpuClock(true); // libnds sets TWL clock speeds on arm7/arm9 scfg_clk at boot now. No changes needed.
 		} else {
 			setCpuClock(false); //REG_SCFG_CLK = 0x80;
-			fifoSendValue32(FIFO_USER_06, 1);
+			pxiSendAndReceive(PxiChannel_User0, 0);
 		}
 
 		// Boost VRAM
@@ -350,8 +345,8 @@ static int runNdsFile(configuration* conf) {
 		}
 	}
 
-	fifoSendValue32(FIFO_USER_03, 1);
-	fifoWaitValue32(FIFO_USER_05);
+	// Wait for ARM7 to set up the PXI channel. Also serves as an ARM7 ready flag.
+	pxiWaitRemote(PxiChannel_User0);
 
 	// Logging
 	const char *logFilePath = (conf->sdFound && !conf->b4dsMode ? "sd:/NDSBTSRP.LOG" : "fat:/NDSBTSRP.LOG");
@@ -536,7 +531,7 @@ static int runNdsFile(configuration* conf) {
 }
 
 int main(int argc, char** argv) {
-	fifoSendValue32(FIFO_PM, PM_REQ_SLEEP_DISABLE);
+	pmSetSleepAllowed(false);
 
 	configuration* conf = (configuration*)malloc(sizeof(configuration));
 

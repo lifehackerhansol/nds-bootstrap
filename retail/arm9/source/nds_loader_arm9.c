@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h> // free
 #include <string.h> // memcpy
+#include <calico.h>
 #include <nds/interrupts.h>
 #include <nds/arm9/video.h>
 #include <nds/arm9/dldi.h>
@@ -147,6 +148,14 @@ static bool dldiPatchLoader (data_t *binData, u32 binSize, bool clearBSS)
 
 	if (patchOffset < 0) {
 		// does not have a DLDI section
+		return false;
+	}
+
+	alignas(ARM_CACHE_LINE_SZ) static u8 io_dldi_data[DLDI_MAX_ALLOC_SZ] = {};
+	DLDI_INTERFACE* io = (DLDI_INTERFACE*)io_dldi_data;
+
+	if (!dldiDumpInternal(io)) {
+		// No DLDI patch
 		return false;
 	}
 
@@ -333,20 +342,21 @@ int runNds(u32 cluster, u32 saveCluster, u32 donorTwlCluster, /* u32 gbaCluster,
 	// Reset into a passme loop
 	nocashMessage("Reset into a passme loop");
 	REG_EXMEMCNT |= ARM7_OWNS_ROM | ARM7_OWNS_CARD;
-	
-	*(vu32*)0x02FFFFFC = 0;
 
-	// Return to passme loop
-	*(vu32*)0x02FFFE04 = (u32)0xE59FF018; // ldr pc, 0x02FFFE24
-	*(vu32*)0x02FFFE24 = (u32)0x02FFFE04;  // Set ARM9 Loop address --> resetARM9(0x02FFFE04);
-	
+	*((vu32*)0x02FFFFFC) = 0;
+	*(u32*)&g_envAppNdsHeader->title[4] = 0xE59FF018;
+	g_envAppNdsHeader->arm9_entrypoint = (u32)&g_envAppNdsHeader->title[4];
+	g_envAppNdsHeader->arm7_entrypoint = 0x06000000;
+	g_envAppTwlHeader->arm7_mbk_map_settings[0] = mbkMakeMapping(MM_TWLWRAM_MAP, MM_TWLWRAM_MAP+MM_TWLWRAM_BANK_SZ, MbkMapSize_256K);
+	g_envExtraInfo->pm_chainload_flag = 1;
+
 	// Reset ARM7
 	nocashMessage("resetARM7");
-	resetARM7(0x06000000);	
 
 	// swi soft reset
 	nocashMessage("swiSoftReset");
-	swiSoftReset();
+
+	exit(0);
 
 	return true;
 }

@@ -169,8 +169,16 @@ nitroFSInit(const char *ndsfile)
     ndsFile[0] = NULL;
 	bool headerFirst = ((strncmp((const char *)0x02FFFC38, __NDSHeader->gameCode, 4) == 0)
 				  && (*(u16*)0x02FFFC36 == __NDSHeader->headerCRC16));
-	if ((!dsiFeatures() || headerFirst) && !(io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA))
+
+	alignas(ARM_CACHE_LINE_SZ) static u8 io_dldi_data[DLDI_MAX_ALLOC_SZ] = {};
+	DLDI_INTERFACE* io = (DLDI_INTERFACE*)io_dldi_data;
+    dldiDumpInternal(io);
+
+	if ((!dsiFeatures() || headerFirst) && !(io->disc.features & FEATURE_SLOT_GBA))
 	{
+        // Hack. libnds v2 only allows one CPU to access it at a time, but we need to read the
+        // GBA cart header.
+        u16 oldExmemCnt = REG_EXMEMCNT;
 		sysSetCartOwner (BUS_OWNER_ARM9); //give us gba slot ownership
 		// We has gba rahm
 		//printf("yes i think this is GBA?!\n");
@@ -192,6 +200,7 @@ nitroFSInit(const char *ndsfile)
 			AddDevice(&nitroFSdevoptab);
 			return (1);
 		}
+        REG_EXMEMCNT = oldExmemCnt;
 	}
 	if (ndsfile != NULL)
 	{
