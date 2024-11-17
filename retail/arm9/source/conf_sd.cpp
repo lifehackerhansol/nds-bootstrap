@@ -1045,56 +1045,8 @@ int loadFromSD(configuration* conf, const char *bootstrapPath) {
 		}
 	}
 
-	bool useTwlCfg = (dsiFeatures() && (*(u8*)0x02000400 != 0) && (*(u8*)0x02000401 == 0) && (*(u8*)0x02000402 == 0) && (*(u8*)0x02000404 == 0) && (*(u8*)0x02000448 != 0));
-	bool nandMounted = false;
-	if (!useTwlCfg && !conf->b4dsMode && isDSiMode() && conf->sdFound && conf->consoleModel < 2) {
-		bool sdNandFound = (conf->sdNand && access("sd:/shared1/TWLCFG0.dat", F_OK) == 0 && access("sd:/sys/HWINFO_N.dat", F_OK) == 0 && REG_SCFG_EXT7 == 0);
-		if (!sdNandFound) {
-			nandMounted = fatMountSimple("nand", &io_dsi_nand);
-		}
-
-		if (nandMounted || sdNandFound) {
-			FILE* twlCfgFile = fopen(nandMounted ? "nand:/shared1/TWLCFG0.dat" : "sd:/shared1/TWLCFG0.dat", "rb");
-			fseek(twlCfgFile, 0x88, SEEK_SET);
-			fread((void*)0x02000400, 1, 0x128, twlCfgFile);
-			fclose(twlCfgFile);
-
-			u32 srBackendId[2] = {*(u32*)0x02000428, *(u32*)0x0200042C};
-			if ((srBackendId[0] != 0x53524C41 || srBackendId[1] != 0x00030004) && isDSiMode() && !nandMounted) {
-				nandMounted = fatMountSimple("nand", &io_dsi_nand);
-				if (nandMounted) {
-					twlCfgFile = fopen("nand:/shared1/TWLCFG0.dat", "rb");
-					fseek(twlCfgFile, 0x88, SEEK_SET);
-					fread((void*)0x02000400, 1, 0x128, twlCfgFile);
-					fclose(twlCfgFile);
-				}
-			}
-
-			// WiFi RAM data
-			u8* twlCfg = (u8*)0x02000400;
-			readFirmware(0x1FD, twlCfg+0x1E0, 1); // WlFirm Type (1=DWM-W015, 2=W024, 3=W028)
-			u32 wlFirmVars = 0x500400;
-			u32 wlFirmBase = 0x500000;
-			u32 wlFirmSize = 0x02E000;
-			if (twlCfg[0x1E0] == 2 || twlCfg[0x1E0] == 3) {
-				wlFirmVars = 0x520000;
-				wlFirmBase = 0x520000;
-				wlFirmSize = 0x020000;
-			}
-			toncset32(twlCfg+0x1E4, wlFirmVars, 1); // WlFirm RAM vars
-			toncset32(twlCfg+0x1E8, wlFirmBase, 1); // WlFirm RAM base
-			toncset32(twlCfg+0x1EC, wlFirmSize, 1); // WlFirm RAM size
-			twlCfgFile = fopen(nandMounted ? "nand:/sys/HWINFO_N.dat" : "sd:/sys/HWINFO_N.dat", "rb");
-			fseek(twlCfgFile, 0x88, SEEK_SET);
-			fread((void*)0x02000600, 1, 0x14, twlCfgFile);
-			fclose(twlCfgFile);
-
-			useTwlCfg = true;
-		}
-	}
-
 	// Get region
-	u8 twlCfgCountry = (useTwlCfg ? *(u8*)0x02000405 : 0);
+	u8 twlCfgCountry = (dsiFeatures() ? *(u8*)0x02000405 : 0);
 	u8 newRegion = 0;
 	if ((conf->useRomRegion || (conf->region == -1 && twlCfgCountry == 0)) && romTid[3] != 'A' && romTid[3] != 'O') {
 		// Determine region by TID
@@ -1160,7 +1112,7 @@ int loadFromSD(configuration* conf, const char *bootstrapPath) {
 			donorNdsFile = fopen(conf->donor20Path, "rb");
 		} else if (REG_SCFG_EXT7 == 0 && (conf->dsiMode > 0 || conf->isDSiWare) && (a7mbk6 == (dsiEnhancedMbk ? 0x080037C0 : 0x00403000) || (romTid[0] == 'H' && ndsArm7Size < 0xC000 && ndsArm7idst == 0x02E80000 && (REG_MBK9 & 0x00FFFFFF) != 0x00FFFF0F))) {
 			if (romTid[0] == 'H' && ndsArm7Size < 0xC000 && ndsArm7idst == 0x02E80000) {
-				if (!nandMounted && strncmp((dsiEnhancedMbk ? conf->donorTwl0Path : conf->donorTwlOnly0Path), "nand:", 5) == 0) {
+				if (strncmp((dsiEnhancedMbk ? conf->donorTwl0Path : conf->donorTwlOnly0Path), "nand:", 5) == 0) {
 					fatMountSimple("nand", &io_dsi_nand);
 				}
 				donorNdsFile = fopen(dsiEnhancedMbk ? conf->donorTwl0Path : conf->donorTwlOnly0Path, "rb"); // System titles can only use an SDK 5.0 donor ROM
@@ -1176,7 +1128,8 @@ int loadFromSD(configuration* conf, const char *bootstrapPath) {
 				|| ( dsiEnhancedMbk && ndsArm7Size == 0x28E54)
 				|| (!dsiEnhancedMbk && ndsArm7Size == 0x29EE8)
 				);
-				if (!nandMounted && strncmp((sdk50 ? (dsiEnhancedMbk ? conf->donorTwl0Path : conf->donorTwlOnly0Path) : (dsiEnhancedMbk ? conf->donorTwlPath : conf->donorTwlOnlyPath)), "nand:", 5) == 0) {
+				bool nandMounted = false;
+				if (strncmp((sdk50 ? (dsiEnhancedMbk ? conf->donorTwl0Path : conf->donorTwlOnly0Path) : (dsiEnhancedMbk ? conf->donorTwlPath : conf->donorTwlOnlyPath)), "nand:", 5) == 0) {
 					nandMounted = fatMountSimple("nand", &io_dsi_nand);
 				}
 				donorNdsFile = fopen(sdk50 ? (dsiEnhancedMbk ? conf->donorTwl0Path : conf->donorTwlOnly0Path) : (dsiEnhancedMbk ? conf->donorTwlPath : conf->donorTwlOnlyPath), "rb");
