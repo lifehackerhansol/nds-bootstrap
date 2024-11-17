@@ -32,7 +32,6 @@
 #include "locations.h"
 #include "version.h"
 
-#include "nandio.h"
 #include "f_xy.h"
 #include "dsi.h"
 #include "u128_math.h"
@@ -1112,9 +1111,6 @@ int loadFromSD(configuration* conf, const char *bootstrapPath) {
 			donorNdsFile = fopen(conf->donor20Path, "rb");
 		} else if (REG_SCFG_EXT7 == 0 && (conf->dsiMode > 0 || conf->isDSiWare) && (a7mbk6 == (dsiEnhancedMbk ? 0x080037C0 : 0x00403000) || (romTid[0] == 'H' && ndsArm7Size < 0xC000 && ndsArm7idst == 0x02E80000 && (REG_MBK9 & 0x00FFFFFF) != 0x00FFFF0F))) {
 			if (romTid[0] == 'H' && ndsArm7Size < 0xC000 && ndsArm7idst == 0x02E80000) {
-				if (strncmp((dsiEnhancedMbk ? conf->donorTwl0Path : conf->donorTwlOnly0Path), "nand:", 5) == 0) {
-					fatMountSimple("nand", &io_dsi_nand);
-				}
 				donorNdsFile = fopen(dsiEnhancedMbk ? conf->donorTwl0Path : conf->donorTwlOnly0Path, "rb"); // System titles can only use an SDK 5.0 donor ROM
 			} else if (strncmp(romTid, "KCX", 3) == 0 && dsiEnhancedMbk) {
 				// Set cloneboot/multiboot SRL file as Donor ROM
@@ -1128,17 +1124,10 @@ int loadFromSD(configuration* conf, const char *bootstrapPath) {
 				|| ( dsiEnhancedMbk && ndsArm7Size == 0x28E54)
 				|| (!dsiEnhancedMbk && ndsArm7Size == 0x29EE8)
 				);
-				bool nandMounted = false;
-				if (strncmp((sdk50 ? (dsiEnhancedMbk ? conf->donorTwl0Path : conf->donorTwlOnly0Path) : (dsiEnhancedMbk ? conf->donorTwlPath : conf->donorTwlOnlyPath)), "nand:", 5) == 0) {
-					nandMounted = fatMountSimple("nand", &io_dsi_nand);
-				}
 				donorNdsFile = fopen(sdk50 ? (dsiEnhancedMbk ? conf->donorTwl0Path : conf->donorTwlOnly0Path) : (dsiEnhancedMbk ? conf->donorTwlPath : conf->donorTwlOnlyPath), "rb");
 				if (!donorNdsFile) {
 					if (donorNdsFile) {
 						fclose(donorNdsFile);
-					}
-					if (!nandMounted && (strncmp((sdk50 ? (dsiEnhancedMbk ? conf->donorTwlPath : conf->donorTwlOnlyPath) : (dsiEnhancedMbk ? conf->donorTwl0Path : conf->donorTwlOnly0Path)), "nand:", 5) == 0)) {
-						nandMounted = fatMountSimple("nand", &io_dsi_nand);
 					}
 					FILE* donorNdsFile2 = fopen(sdk50 ? (dsiEnhancedMbk ? conf->donorTwlPath : conf->donorTwlOnlyPath) : (dsiEnhancedMbk ? conf->donorTwl0Path : conf->donorTwlOnly0Path), "rb");
 					if (donorNdsFile2) {
