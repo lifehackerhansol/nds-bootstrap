@@ -741,8 +741,7 @@ void getIgmStrings(configuration* conf, bool b4ds) {
 
 int loadFromSD(configuration* conf, const char *bootstrapPath) {
 	int rc = 0;
-	fatMountSimple("sd", &__my_io_dsisd);
-	fatMountSimple("fat", dldiGetInternal());
+	fatInitDefault();
 
 	conf->sdFound = (access("sd:/", F_OK) == 0);
 	const bool flashcardFound = (access("fat:/", F_OK) == 0);
@@ -759,12 +758,7 @@ int loadFromSD(configuration* conf, const char *bootstrapPath) {
 		//bootstrapPath = "sd:/_nds/nds-bootstrap-release.nds";
 		bootstrapPath = conf->sdFound ? "sd:/_nds/nds-bootstrap-nightly.nds" : "fat:/_nds/nds-bootstrap-nightly.nds";
 	}
-	if (!nitroFSInit(bootstrapPath)) {
-		consoleDemoInit();
-		iprintf("nitroFSInit failed!\n");
-		return -1;
-	}
-	
+
 	if (*(u16*)0x02FFFC30 == 0) {
 		sysSetCartOwner(BUS_OWNER_ARM9); // Allow arm9 to access GBA ROM
 		if (*(u16*)(0x020000C0) != 0x334D && *(u16*)(0x020000C0) != 0x3647 && *(u16*)(0x020000C0) != 0x4353 && *(u16*)(0x020000C0) != 0x5A45) {

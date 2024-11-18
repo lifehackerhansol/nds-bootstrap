@@ -43,8 +43,6 @@ redistribute it freely, subject to the following restrictions:
 
 //static vu32* wordCommandAddr;
 
-void my_installSystemFIFO(void);
-
 void VcountHandler(void) {
 	inputGetAndSend();
 }
@@ -79,7 +77,7 @@ int main(void) {
 
 	SetYtrigger(80);
 
-	my_installSystemFIFO();
+	installSystemFIFO();
 
 	irqSet(IRQ_VCOUNT, VcountHandler);
 
