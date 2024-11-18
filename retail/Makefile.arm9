@@ -11,8 +11,8 @@ ARM_NONE_EABI_PATH	?= $(WONDERFUL_TOOLCHAIN)/toolchain/gcc-arm-none-eabi/bin/
 # Source code paths
 # -----------------
 
-SOURCEDIRS	:= arm9/source arm9/libeasysave/source arm9/mbedtls common/source_general
-INCLUDEDIRS	:= arm9/include arm9/libeasysave/include arm9/mbedtls common/include
+SOURCEDIRS	:= arm9/source arm9/libeasysave/source common/source_general
+INCLUDEDIRS	:= arm9/include arm9/libeasysave/include common/include
 GFXDIRS		:=
 BINDIRS		:=
 AUDIODIRS	:=
