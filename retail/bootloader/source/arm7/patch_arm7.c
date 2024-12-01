@@ -115,32 +115,6 @@ u16* getOffsetFromBLThumb(u16* blOffset) {
 u32 vAddrOfRelocSrc = 0;
 u32 relocDestAtSharedMem = 0;
 
-static void patchRamClear(const tNDSHeader* ndsHeader, const module_params_t* moduleParams) {
-	if (moduleParams->sdk_version < 0x5000000 || arm7newUnitCode == 0) {
-		return;
-	}
-
-	u32* ramClearOffset = patchOffsetCache.ramClearOffset;
-	if (!patchOffsetCache.ramClearOffset && !patchOffsetCache.ramClearChecked) {
-		ramClearOffset = findRamClearOffset(ndsHeader);
-		if (ramClearOffset) {
-			patchOffsetCache.ramClearOffset = ramClearOffset;
-		}
-	}
-	if (ramClearOffset) {
-		// if (arm7newUnitCode > 0) {
-			*(ramClearOffset) = 0x02FFF000;
-			*(ramClearOffset + 1) = 0x02FFF000;
-		// }
-		// ramClearOffset[3] -= 0x1800; // Shrink hi heap
-
-		dbg_printf("RAM clear location : ");
-		dbg_hexa((u32)ramClearOffset);
-		dbg_printf("\n\n");
-	}
-	patchOffsetCache.ramClearChecked = true;
-}
-
 static void patchPostBoot(const tNDSHeader* ndsHeader) {
 	if (arm7mbk != 0x080037C0) {
 		return;

@@ -19,10 +19,6 @@ static const u32 relocateStartSignature5Alt2[1] = {0x02FFFFFA};
 static const u32 nextFunctiontSignature[1] = {0xE92D4000};
 static const u32 relocateValidateSignature[1] = {0x400010C};
 
-// RAM clear
-// static const u32 ramClearSignature[2]    = {0xE12FFF1E, 0x027FF000};
-static const u32 ramClearSignatureTwl[2] = {0x02FFC000, 0x02FFF000};
-
 // Post-boot code
 static const u32 postBootStartSignature[1]      = {0xE92D47F0};
 static const u16 postBootStartSignatureThumb[1] = {0xB5F8};
@@ -214,23 +210,6 @@ bool a7GetReloc(const tNDSHeader* ndsHeader, const module_params_t* moduleParams
 	dbg_printf("\n");
 
 	return true;
-}
-
-u32* findRamClearOffset(const tNDSHeader* ndsHeader) {
-	dbg_printf("findRamClearOffset:\n");
-
-	u32* ramClearOffset = findOffset(
-		(u32*)ndsHeader->arm7destination, newArm7binarySize,
-		/* (arm7newUnitCode > 0) ? */ ramClearSignatureTwl /* : ramClearSignature */, 2
-	);
-	if (ramClearOffset) {
-		dbg_printf("RAM clear found\n");
-	} else {
-		dbg_printf("RAM clear not found\n");
-	}
-
-	dbg_printf("\n");
-	return ramClearOffset;
 }
 
 u32* findPostBootOffset(const tNDSHeader* ndsHeader) {
