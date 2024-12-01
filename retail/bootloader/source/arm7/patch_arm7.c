@@ -115,33 +115,6 @@ u16* getOffsetFromBLThumb(u16* blOffset) {
 u32 vAddrOfRelocSrc = 0;
 u32 relocDestAtSharedMem = 0;
 
-static bool patchCardIrqEnable(cardengineArm7* ce7, const tNDSHeader* ndsHeader, const module_params_t* moduleParams) {
-	// Card irq enable
-	u32* cardIrqEnableOffset = patchOffsetCache.a7CardIrqEnableOffset;
-	if (!patchOffsetCache.a7CardIrqEnableOffset) {
-		cardIrqEnableOffset = findCardIrqEnableOffset(ndsHeader, moduleParams);
-		if (cardIrqEnableOffset) {
-			patchOffsetCache.a7CardIrqEnableOffset = cardIrqEnableOffset;
-		}
-	}
-	if (!cardIrqEnableOffset) {
-		return false;
-	}
-	const bool usesThumb = (*(u16*)cardIrqEnableOffset == 0xB510 || *(u16*)cardIrqEnableOffset == 0xB530);
-	if (usesThumb) {
-		u16* cardIrqEnablePatch = (u16*)ce7->patches->thumb_card_irq_enable_arm7;
-		tonccpy(cardIrqEnableOffset, cardIrqEnablePatch, 0x20);
-	} else {
-		u32* cardIrqEnablePatch = ce7->patches->card_irq_enable_arm7;
-		tonccpy(cardIrqEnableOffset, cardIrqEnablePatch, 0x30);
-	}
-
-    dbg_printf("cardIrqEnable location : ");
-    dbg_hexa((u32)cardIrqEnableOffset);
-    dbg_printf("\n\n");
-	return true;
-}
-
 static void operaRamPatch(void) {
 	// Opera RAM patch (ARM7)
 	*(u32*)0x0238C7BC = 0xC400000;
@@ -228,7 +201,7 @@ u32 patchCardNdsArm7(
 
 	const char* romTid = getRomTid(ndsHeader);
 
-	if (!patchCardIrqEnable(ce7, ndsHeader, moduleParams)) {
+	if (!a7PatchCardIrqEnable(ce7, ndsHeader, moduleParams)) {
 		dbg_printf("ERR_LOAD_OTHR");
 		return ERR_LOAD_OTHR;
 	}

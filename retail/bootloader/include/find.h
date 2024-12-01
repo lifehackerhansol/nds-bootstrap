@@ -97,6 +97,5 @@ u32* findSharedFontPathOffset(const tNDSHeader* ndsHeader);
 // ARM7
 bool a7GetReloc(const tNDSHeader* ndsHeader, const module_params_t* moduleParams);
 u32* findUserDataAddrOffset(const tNDSHeader* ndsHeader, const module_params_t* moduleParams);
-u32* findCardIrqEnableOffset(const tNDSHeader* ndsHeader, const module_params_t* moduleParams);
 
 #endif // FIND_H

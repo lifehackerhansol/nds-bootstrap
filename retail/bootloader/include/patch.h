@@ -152,6 +152,7 @@ void patchSleepInputWrite(const tNDSHeader* ndsHeader, const module_params_t* mo
 void patchRamClear(const tNDSHeader* ndsHeader, const module_params_t* moduleParams);
 void patchPostBoot(const tNDSHeader* ndsHeader);
 void patchCardCheckPullOut(cardengineArm7* ce7, const tNDSHeader* ndsHeader, const module_params_t* moduleParams);
+bool a7PatchCardIrqEnable(cardengineArm7* ce7, const tNDSHeader* ndsHeader, const module_params_t* moduleParams);
 
 // ARM9
 void patchCardPullOut(cardengineArm9* ce9, const tNDSHeader* ndsHeader, const module_params_t* moduleParams, bool usesThumb, int sdk5ReadType, u32** cardPullOutOffsetPtr);

@@ -19,14 +19,6 @@ static const u32 relocateStartSignature5Alt2[1] = {0x02FFFFFA};
 static const u32 nextFunctiontSignature[1] = {0xE92D4000};
 static const u32 relocateValidateSignature[1] = {0x400010C};
 
-// irq enable
-static const u32 irqEnableStartSignature1[4]      = {0xE59FC028, 0xE1DC30B0, 0xE3A01000, 0xE1CC10B0}; // SDK <= 3
-static const u32 irqEnableStartSignature4[4]      = {0xE92D4010, 0xE1A04000, 0xEBFFFFF6, 0xE59FC020}; // SDK >= 4
-static const u32 irqEnableStartSignature4Alt[4]   = {0xE92D4010, 0xE1A04000, 0xEBFFFFE9, 0xE59FC020}; // SDK 5
-static const u16 irqEnableStartSignatureThumb[5]  = {0xB530, 0xB081, 0x4D07, 0x882C, 0x2100};
-static const u16 irqEnableStartSignatureThumb3[5] = {0xB510, 0x1C04, 0xF7FF, 0xFFF4, 0x4B05}; // SDK 3
-static const u16 irqEnableStartSignatureThumb5[5] = {0xB510, 0x1C04, 0xF7FF, 0xFFE4, 0x4B05}; // SDK 5
-
 bool a7GetReloc(const tNDSHeader* ndsHeader, const module_params_t* moduleParams) {
 	extern u32 vAddrOfRelocSrc;
 	extern u32 relocDestAtSharedMem;
@@ -200,97 +192,4 @@ bool a7GetReloc(const tNDSHeader* ndsHeader, const module_params_t* moduleParams
 	dbg_printf("\n");
 
 	return true;
-}
-
-u32* findCardIrqEnableOffset(const tNDSHeader* ndsHeader, const module_params_t* moduleParams) {
-	dbg_printf("findCardIrqEnableOffset:\n");
-	
-	const u32* irqEnableStartSignature = irqEnableStartSignature1;
-	if (ndsHeader->arm7binarySize != 0x289C0 && moduleParams->sdk_version > 0x4000000) {
-		irqEnableStartSignature = irqEnableStartSignature4;
-	}
-
-	u32* cardIrqEnableOffset = findOffset(
-		(u32*)ndsHeader->arm7destination, newArm7binarySize,
-		irqEnableStartSignature, 4
-	);
-	if (cardIrqEnableOffset) {
-		dbg_printf("irq enable found\n");
-	} else {
-		dbg_printf("irq enable not found\n");
-	}
-
-	if (!cardIrqEnableOffset && moduleParams->sdk_version < 0x4000000) {
-		// SDK 4
-		cardIrqEnableOffset = findOffset(
-			(u32*)ndsHeader->arm7destination, newArm7binarySize,
-            irqEnableStartSignature4, 4
-		);
-		if (cardIrqEnableOffset) {
-			dbg_printf("irq enable SDK 4 found\n");
-		} else {
-			dbg_printf("irq enable SDK 4 not found\n");
-		}
-	}
-
-	if (!cardIrqEnableOffset) {
-		// SDK 5
-		cardIrqEnableOffset = findOffset(
-			(u32*)ndsHeader->arm7destination, newArm7binarySize,
-            irqEnableStartSignature4Alt, 4
-		);
-		if (cardIrqEnableOffset) {
-			dbg_printf("irq enable alt found\n");
-		} else {
-			dbg_printf("irq enable alt not found\n");
-		}
-	}
-
-	if (!cardIrqEnableOffset) {
-		cardIrqEnableOffset = (u32*)findOffsetThumb(
-			(u16*)ndsHeader->arm7destination, newArm7binarySize,
-            irqEnableStartSignatureThumb, 5
-		);
-		if (cardIrqEnableOffset) {
-			// Find again
-			cardIrqEnableOffset = (u32*)findOffsetThumb(
-				(u16*)cardIrqEnableOffset+4, newArm7binarySize,
-				irqEnableStartSignatureThumb, 5
-			);
-		}
-		if (cardIrqEnableOffset) {
-			dbg_printf("irq enable thumb found\n");
-		} else {
-			dbg_printf("irq enable thumb not found\n");
-		}
-	}
-
-	if (!cardIrqEnableOffset) {
-		// SDK 3
-		cardIrqEnableOffset = (u32*)findOffsetThumb(
-			(u16*)ndsHeader->arm7destination, newArm7binarySize,
-            irqEnableStartSignatureThumb3, 5
-		);
-		if (cardIrqEnableOffset) {
-			dbg_printf("irq enable thumb SDK 3 found\n");
-		} else {
-			dbg_printf("irq enable thumb SDK 3 not found\n");
-		}
-	}
-
-	if (!cardIrqEnableOffset && isSdk5(moduleParams)) {
-		// SDK 5
-		cardIrqEnableOffset = (u32*)findOffsetThumb(
-			(u16*)ndsHeader->arm7destination, newArm7binarySize,
-            irqEnableStartSignatureThumb5, 5
-		);
-		if (cardIrqEnableOffset) {
-			dbg_printf("irq enable thumb SDK 5 found\n");
-		} else {
-			dbg_printf("irq enable thumb SDK 5 not found\n");
-		}
-	}
-
-	dbg_printf("\n");
-	return cardIrqEnableOffset;
 }
