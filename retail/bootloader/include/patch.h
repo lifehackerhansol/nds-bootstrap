@@ -153,6 +153,9 @@ void patchRamClear(const tNDSHeader* ndsHeader, const module_params_t* modulePar
 void patchPostBoot(const tNDSHeader* ndsHeader);
 void patchCardCheckPullOut(cardengineArm7* ce7, const tNDSHeader* ndsHeader, const module_params_t* moduleParams);
 
+// ARM9
+void patchCardPullOut(cardengineArm9* ce9, const tNDSHeader* ndsHeader, const module_params_t* moduleParams, bool usesThumb, int sdk5ReadType, u32** cardPullOutOffsetPtr);
+
 void patchBinary(cardengineArm9* ce9, const tNDSHeader* ndsHeader, module_params_t* moduleParams);
 u32 patchCardNdsArm9(
 	cardengineArm9* ce9,

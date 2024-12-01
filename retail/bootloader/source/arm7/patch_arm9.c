@@ -350,41 +350,6 @@ static void patchCardSaveCmd(cardengineArm9* ce9, const tNDSHeader* ndsHeader, c
 	dbg_printf("\n\n");
 }
 
-static void patchCardPullOut(cardengineArm9* ce9, const tNDSHeader* ndsHeader, const module_params_t* moduleParams, bool usesThumb, int sdk5ReadType, u32** cardPullOutOffsetPtr) {
-	// Card pull out
-	u32* cardPullOutOffset = patchOffsetCache.cardPullOutOffset;
-	if (!patchOffsetCache.cardPullOutOffset) {
-		cardPullOutOffset = NULL;
-		if (usesThumb) {
-			//dbg_printf("Trying SDK 5 thumb...\n");
-			if (sdk5ReadType == 0) {
-				cardPullOutOffset = (u32*)findCardPullOutOffsetThumb5Type0(ndsHeader, moduleParams);
-			} else {
-				cardPullOutOffset = (u32*)findCardPullOutOffsetThumb5Type1(ndsHeader, moduleParams);
-			}
-			if (!cardPullOutOffset) {
-				//dbg_printf("Trying thumb...\n");
-				cardPullOutOffset = (u32*)findCardPullOutOffsetThumb(ndsHeader);
-			}
-		} else {
-			cardPullOutOffset = findCardPullOutOffset(ndsHeader, moduleParams);
-		}
-		if (cardPullOutOffset) {
-			patchOffsetCache.cardPullOutOffset = cardPullOutOffset;
-		}
-	}
-	*cardPullOutOffsetPtr = cardPullOutOffset;
-	if (!cardPullOutOffset) {
-		return;
-	}
-
-	// Patch
-	*cardPullOutOffset = usesThumb ? 0x47704770 : 0xE12FFF1E; // bx lr
-    dbg_printf("cardPullOut location : ");
-    dbg_hexa((u32)cardPullOutOffset);
-    dbg_printf("\n\n");
-}
-
 static void patchCacheFlush(cardengineArm9* ce9, bool usesThumb, u32* cardPullOutOffset) {
 	if (!cardPullOutOffset) {
 		return;
