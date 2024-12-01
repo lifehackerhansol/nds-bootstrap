@@ -147,6 +147,8 @@ void codeCopy(u32* dst, u32* src, u32 len);
 // ARM7
 bool patchWramClear(const tNDSHeader* ndsHeader);
 void fixForDSiBios(const cardengineArm7* ce7, const tNDSHeader* ndsHeader, const module_params_t* moduleParams);
+void patchSleepMode(const tNDSHeader* ndsHeader);
+void patchSleepInputWrite(const tNDSHeader* ndsHeader, const module_params_t* moduleParams);
 
 void patchBinary(cardengineArm9* ce9, const tNDSHeader* ndsHeader, module_params_t* moduleParams);
 u32 patchCardNdsArm9(

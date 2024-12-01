@@ -11,8 +11,6 @@
 #include "cardengine_header_arm7.h"
 #include "debug_file.h"
 
-extern u32 _io_dldi_features;
-
 extern u8 arm7newUnitCode;
 extern u32 newArm7binarySize;
 extern u32 arm7mbk;
@@ -116,58 +114,6 @@ u16* getOffsetFromBLThumb(u16* blOffset) {
 
 u32 vAddrOfRelocSrc = 0;
 u32 relocDestAtSharedMem = 0;
-u32 newSwiGetPitchTableAddr = 0;
-
-static void patchSleepMode(const tNDSHeader* ndsHeader) {
-	// Sleep
-	u32* sleepPatchOffset = patchOffsetCache.sleepPatchOffset;
-	if (!patchOffsetCache.sleepPatchOffset) {
-		sleepPatchOffset = findSleepPatchOffset(ndsHeader);
-		if (!sleepPatchOffset) {
-			dbg_printf("Trying thumb...\n");
-			sleepPatchOffset = (u32*)findSleepPatchOffsetThumb(ndsHeader);
-		}
-		patchOffsetCache.sleepPatchOffset = sleepPatchOffset;
-	}
-	if ((_io_dldi_features & 0x00000010) || forceSleepPatch) {
-		if (sleepPatchOffset) {
-			// Patch
-			*((u16*)sleepPatchOffset + 2) = 0;
-			*((u16*)sleepPatchOffset + 3) = 0;
-
-			dbg_printf("Sleep location : ");
-			dbg_hexa((u32)sleepPatchOffset);
-			dbg_printf("\n\n");
-		}
-	}
-}
-
-
-static void patchSleepInputWrite(const tNDSHeader* ndsHeader, const module_params_t* moduleParams) {
-	u32* offset = patchOffsetCache.sleepInputWriteOffset;
-	if (!patchOffsetCache.sleepInputWriteOffset) {
-		offset = findSleepInputWriteOffset(ndsHeader, moduleParams);
-		if (offset) {
-			patchOffsetCache.sleepInputWriteOffset = offset;
-		}
-	}
-	if (!offset) {
-		return;
-	}
-
-	if (!sleepMode) {
-		if (*offset == 0x13A04902 || *offset == 0x11A05004) {
-			*offset = 0xE1A00000; // nop
-		} else {
-			u16* offsetThumb = (u16*)offset;
-			*offsetThumb = 0x46C0; // nop
-		}
-	}
-
-	dbg_printf("Sleep input write location : ");
-	dbg_hexa((u32)offset);
-	dbg_printf("\n\n");
-}
 
 static void patchRamClear(const tNDSHeader* ndsHeader, const module_params_t* moduleParams) {
 	if (moduleParams->sdk_version < 0x5000000 || arm7newUnitCode == 0) {
