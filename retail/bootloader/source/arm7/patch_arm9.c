@@ -371,50 +371,6 @@ static void patchCacheFlush(cardengineArm9* ce9, bool usesThumb, u32* cardPullOu
 	tonccpy(forceToPowerOffOffset, cardPullOutPatch, 0x4);
 }*/
 
-static bool patchCardId(cardengineArm9* ce9, const tNDSHeader* ndsHeader, const module_params_t* moduleParams, bool usesThumb, u32* cardReadEndOffset) {
-	if (!isPawsAndClaws(ndsHeader) && !cardReadEndOffset) {
-		return true;
-	}
-
-	// Card ID
-	u32* cardIdStartOffset = patchOffsetCache.cardIdOffset;
-	if (!patchOffsetCache.cardIdChecked) {
-		cardIdStartOffset = NULL;
-		u32* cardIdEndOffset = NULL;
-		if (usesThumb) {
-			cardIdEndOffset = (u32*)findCardIdEndOffsetThumb(ndsHeader, moduleParams, (u16*)cardReadEndOffset);
-			cardIdStartOffset = (u32*)findCardIdStartOffsetThumb(moduleParams, (u16*)cardIdEndOffset);
-		} else {
-			cardIdEndOffset = findCardIdEndOffset(ndsHeader, moduleParams, cardReadEndOffset);
-			cardIdStartOffset = findCardIdStartOffset(moduleParams, cardIdEndOffset);
-		}
-		if (cardIdStartOffset) {
-			patchOffsetCache.cardIdOffset = cardIdStartOffset;
-		}
-		patchOffsetCache.cardIdChecked = true;
-	}
-
-	if (cardIdStartOffset) {
-        // Patch
-		extern u32 baseChipID;
-		if (usesThumb) {
-			cardIdStartOffset[0] = 0x47704800; // ldr r0, baseChipID + bx lr
-			cardIdStartOffset[1] = baseChipID;
-		} else {
-			cardIdStartOffset[0] = 0xE59F0000; // ldr r0, baseChipID
-			cardIdStartOffset[1] = 0xE12FFF1E; // bx lr
-			cardIdStartOffset[2] = baseChipID;
-		}
-		dbg_printf("cardId location : ");
-		dbg_hexa((u32)cardIdStartOffset);
-		dbg_printf("\n\n");
-	} else if (isSdk5(moduleParams)) {
-		return false;
-	}
-
-	return true;
-}
-
 static void patchCardReadDma(cardengineArm9* ce9, const tNDSHeader* ndsHeader, const module_params_t* moduleParams, bool usesThumb) {
 	// Card read dma
 	u32* cardReadDmaStartOffset = patchOffsetCache.cardReadDmaOffset;
