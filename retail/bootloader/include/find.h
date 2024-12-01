@@ -102,6 +102,5 @@ u32* findSharedFontPathOffset(const tNDSHeader* ndsHeader);
 bool a7GetReloc(const tNDSHeader* ndsHeader, const module_params_t* moduleParams);
 u32* findUserDataAddrOffset(const tNDSHeader* ndsHeader, const module_params_t* moduleParams);
 u32* findCardIrqEnableOffset(const tNDSHeader* ndsHeader, const module_params_t* moduleParams);
-u32* findCardCheckPullOutOffset(const tNDSHeader* ndsHeader, const module_params_t* moduleParams);
 
 #endif // FIND_H

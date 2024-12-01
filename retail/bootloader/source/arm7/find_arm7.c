@@ -19,11 +19,6 @@ static const u32 relocateStartSignature5Alt2[1] = {0x02FFFFFA};
 static const u32 nextFunctiontSignature[1] = {0xE92D4000};
 static const u32 relocateValidateSignature[1] = {0x400010C};
 
-// Card check pull out
-static const u32 cardCheckPullOutSignature1[4] = {0xE92D4000, 0xE24DD004, 0xE59F00B4, 0xE5900000}; // Pokemon Dash, early sdk2
-static const u32 cardCheckPullOutSignature2[4] = {0xE92D4018, 0xE24DD004, 0xE59F204C, 0xE1D210B0}; // SDK != 3
-static const u32 cardCheckPullOutSignature3[4] = {0xE92D4000, 0xE24DD004, 0xE59F002C, 0xE1D000B0}; // SDK 3
-
 // irq enable
 static const u32 irqEnableStartSignature1[4]      = {0xE59FC028, 0xE1DC30B0, 0xE3A01000, 0xE1CC10B0}; // SDK <= 3
 static const u32 irqEnableStartSignature4[4]      = {0xE92D4010, 0xE1A04000, 0xEBFFFFF6, 0xE59FC020}; // SDK >= 4
@@ -205,35 +200,6 @@ bool a7GetReloc(const tNDSHeader* ndsHeader, const module_params_t* moduleParams
 	dbg_printf("\n");
 
 	return true;
-}
-
-u32* findCardCheckPullOutOffset(const tNDSHeader* ndsHeader, const module_params_t* moduleParams) {
-	dbg_printf("findCardCheckPullOutOffset:\n");
-	
-	const u32* cardCheckPullOutSignature = cardCheckPullOutSignature1;
-	if (moduleParams->sdk_version > 0x2004FFF && moduleParams->sdk_version < 0x3000000) {
-		cardCheckPullOutSignature = cardCheckPullOutSignature2;
-    } else if (moduleParams->sdk_version > 0x3000000 && moduleParams->sdk_version < 0x4000000) {
-		cardCheckPullOutSignature = cardCheckPullOutSignature3;
-	}
-
-	u32* cardCheckPullOutOffset = findOffset(
-		(u32*)ndsHeader->arm7destination, newArm7binarySize,
-		cardCheckPullOutSignature, 4
-	);
-	if (cardCheckPullOutOffset) {
-		dbg_printf("Card check pull out found: ");
-	} else {
-		dbg_printf("Card check pull out not found\n");
-	}
-
-	if (cardCheckPullOutOffset) {
-		dbg_hexa((u32)cardCheckPullOutOffset);
-		dbg_printf("\n");
-	}
-
-	dbg_printf("\n");
-	return cardCheckPullOutOffset;
 }
 
 u32* findCardIrqEnableOffset(const tNDSHeader* ndsHeader, const module_params_t* moduleParams) {

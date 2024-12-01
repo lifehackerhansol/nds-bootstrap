@@ -142,15 +142,6 @@ static bool patchCardIrqEnable(cardengineArm7* ce7, const tNDSHeader* ndsHeader,
 	return true;
 }
 
-/*static void patchCardCheckPullOut(cardengineArm7* ce7, const tNDSHeader* ndsHeader, const module_params_t* moduleParams) {
-	// Card check pull out
-	u32* cardCheckPullOutOffset = findCardCheckPullOutOffset(ndsHeader, moduleParams);
-	if (cardCheckPullOutOffset) {
-		u32* cardCheckPullOutPatch = ce7->patches->card_pull_out_arm9;
-		tonccpy(cardCheckPullOutOffset, cardCheckPullOutPatch, 0x4);
-	}
-}*/
-
 static void operaRamPatch(void) {
 	// Opera RAM patch (ARM7)
 	*(u32*)0x0238C7BC = 0xC400000;
