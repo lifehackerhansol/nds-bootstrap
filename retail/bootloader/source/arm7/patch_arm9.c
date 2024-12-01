@@ -705,54 +705,6 @@ static void patchResetTwl(cardengineArm9* ce9, const tNDSHeader* ndsHeader, cons
 	dbg_printf("\n\n");
 }
 
-bool patchedCardIrqEnable = false;
-
-static bool patchCardIrqEnable(cardengineArm9* ce9, const tNDSHeader* ndsHeader, const module_params_t* moduleParams) {
-	const char* romTid = getRomTid(ndsHeader);
-
-	if (strncmp(romTid, "AWD", 3) == 0 // Diddy Kong Racing - Fix corrupted 3D model bug
-	 || strncmp(romTid, "CP3", 3) == 0 // Viva Pinata - Fix touch and model rendering bug
-	 || strncmp(romTid, "BO5", 3) == 0 // Golden Sun: Dark Dawn - Fix black screen on boot
-	 || strncmp(romTid, "Y8L", 3) == 0 // Golden Sun: Dark Dawn (Demo Version) - Fix black screen on boot
-	 || strncmp(romTid, "B8I", 3) == 0 // Spider-Man: Edge of Time - Fix white screen on boot
-	 || strncmp(romTid, "TAM", 3) == 0 // The Amazing Spider-Man - Fix white screen on boot
-	) {
-		return true;
-	}
-
-	bool usesThumb = patchOffsetCache.a9CardIrqIsThumb;
-
-	// Card irq enable
-	u32* cardIrqEnableOffset = patchOffsetCache.a9CardIrqEnableOffset;
-	if (!patchOffsetCache.a9CardIrqEnableOffset) {
-		cardIrqEnableOffset = a9FindCardIrqEnableOffset(ndsHeader, moduleParams, &usesThumb);
-		if (cardIrqEnableOffset) {
-			patchOffsetCache.a9CardIrqEnableOffset = cardIrqEnableOffset;
-			patchOffsetCache.a9CardIrqIsThumb = usesThumb;
-		}
-	}
-	if (!cardIrqEnableOffset) {
-		return false;
-	}
-	const u32 newCardIrqEnable = (u32)ce9->patches->card_irq_enable;
-	if (usesThumb) {
-		u16* offsetThumb = (u16*)cardIrqEnableOffset;
-		offsetThumb[0] = 0xB540; // push {r6, lr}
-		offsetThumb[1] = 0x4E01; // ldr r6, =newCardIrqEnable
-		offsetThumb[2] = 0x47B0; // blx r6
-		offsetThumb[3] = 0xBD40; // pop {r6, pc}
-		cardIrqEnableOffset[2] = newCardIrqEnable;
-	} else {
-		cardIrqEnableOffset[0] = 0xE51FF004; // ldr pc, =newCardIrqEnable
-		cardIrqEnableOffset[1] = newCardIrqEnable;
-	}
-    dbg_printf("cardIrqEnable location : ");
-    dbg_hexa((u32)cardIrqEnableOffset);
-    dbg_printf("\n\n");
-	patchedCardIrqEnable = true;
-	return true;
-}
-
 static void patchMpu(const tNDSHeader* ndsHeader, const module_params_t* moduleParams, u32 patchMpuRegion) {
 	if (!extendedMemory || patchMpuRegion == 2 || ndsHeader->unitCode > 0) {
 		return;
@@ -2407,7 +2359,7 @@ u32 patchCardNdsArm9(cardengineArm9* ce9, const tNDSHeader* ndsHeader, const mod
 	u32* cardReadEndOffset;
 	u32* cardPullOutOffset;
 
-	if (!patchCardIrqEnable(ce9, ndsHeader, moduleParams)) {
+	if (!a9PatchCardIrqEnable(ce9, ndsHeader, moduleParams)) {
 		dbg_printf("ERR_LOAD_OTHR\n\n");
 		return ERR_LOAD_OTHR;
 	}

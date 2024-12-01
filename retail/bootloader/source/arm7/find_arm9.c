@@ -136,14 +136,6 @@ static const u32 initLockEndSignature[2]      = {0x02FFFFB0, 0x04000204};
 static const u32 initLockEndSignatureThumb[3] = {0x02FFFFB0, 0xFFFF0000, 0x04000204};
 static const u32 initLockEndSignatureDebug[3] = {0x02FFFFB0, 0x02FFFFB4, 0x02FFFFC0};
 
-// irq enable
-static const u32 irqEnableStartSignature1[4]        = {0xE59FC028, 0xE3A01000, 0xE1DC30B0, 0xE59F2020};					// SDK <= 3
-static const u32 irqEnableStartSignature2Alt[4]     = {0xE92D000F, 0xE92D4030, 0xE24DD004, 0xEBFFFFDB};					// SDK 2
-static const u32 irqEnableStartSignature4[4]        = {0xE59F3024, 0xE3A01000, 0xE1D320B0, 0xE1C310B0};					// SDK >= 4
-static const u32 irqEnableStartSignature4Debug[4]   = {0xE92D000F, 0xE92D4038, 0xEBFFFFE5, 0xE1A05000};					// SDK >= 4 (DEBUG)
-static const u32 irqEnableStartSignatureThumb[5]    = {0x4D07B430, 0x2100882C, 0x4B068029, 0x1C11681A, 0x60194301};		// SDK <= 3
-static const u32 irqEnableStartSignatureThumbAlt[4] = {0x4C07B418, 0x88232100, 0x32081C22, 0x68118021};					// SDK >= 3
-
 // Mpu cache
 static const u32 mpuInitRegion0Signature[1] = {0xEE060F10};
 static const u32 mpuInitRegion0Data[1]      = {0x4000033};
@@ -1219,95 +1211,6 @@ u32* findInitLockEndOffset(const tNDSHeader* ndsHeader) {
 
 	dbg_printf("\n");
 	return offset;
-}
-
-u32* a9FindCardIrqEnableOffset(const tNDSHeader* ndsHeader, const module_params_t* moduleParams, bool* usesThumb) {
-	dbg_printf("findCardIrqEnableOffset:\n");
-	
-	const u32* irqEnableStartSignature = irqEnableStartSignature1;
-	if (moduleParams->sdk_version > 0x4008000) {
-		irqEnableStartSignature = irqEnableStartSignature4;
-	}
-
-	u32* cardIrqEnableOffset = findOffset(
-		(u32*)ndsHeader->arm9destination, iUncompressedSize,//, ndsHeader->arm9binarySize,
-		irqEnableStartSignature, 4
-	);
-	if (cardIrqEnableOffset) {
-		dbg_printf("irq enable found: ");
-	} else {
-		dbg_printf("irq enable not found\n");
-	}
-
-	if (!cardIrqEnableOffset && moduleParams->sdk_version < 0x2008000) {
-		cardIrqEnableOffset = findOffset(
-			(u32*)ndsHeader->arm9destination, iUncompressedSize,//, ndsHeader->arm9binarySize,
-            irqEnableStartSignature2Alt, 4
-		);
-		if (cardIrqEnableOffset) {
-			dbg_printf("irq enable SDK 2 alt found: ");
-		} else {
-			dbg_printf("irq enable SDK 2 alt not found\n");
-		}
-	}
-
-	if (!cardIrqEnableOffset && moduleParams->sdk_version > 0x3000000 && moduleParams->sdk_version < 0x4008000) {
-		cardIrqEnableOffset = findOffset(
-			(u32*)ndsHeader->arm9destination, iUncompressedSize,//, ndsHeader->arm9binarySize,
-            irqEnableStartSignature4, 4
-		);
-		if (cardIrqEnableOffset) {
-			dbg_printf("irq enable SDK 4 found: ");
-		} else {
-			dbg_printf("irq enable SDK 4 not found\n");
-		}
-	}
-
-	if (!cardIrqEnableOffset && moduleParams->sdk_version > 0x4000000) {
-		cardIrqEnableOffset = findOffset(
-			(u32*)ndsHeader->arm9destination, iUncompressedSize,//, ndsHeader->arm9binarySize,
-            irqEnableStartSignature4Debug, 4
-		);
-		if (cardIrqEnableOffset) {
-			dbg_printf("irq enable SDK 4 debugger found: ");
-		} else {
-			dbg_printf("irq enable SDK 4 debugger not found\n");
-		}
-	}
-
-	if (!cardIrqEnableOffset && moduleParams->sdk_version < 0x4008000) {
-		cardIrqEnableOffset = findOffset(
-			(u32*)ndsHeader->arm9destination, iUncompressedSize,//, ndsHeader->arm9binarySize,
-            irqEnableStartSignatureThumb, 5
-		);
-		if (cardIrqEnableOffset) {
-			*usesThumb = true;
-			dbg_printf("irq enable thumb found: ");
-		} else {
-			dbg_printf("irq enable thumb not found\n");
-		}
-	}
-
-	if (!cardIrqEnableOffset) {
-		cardIrqEnableOffset = findOffset(
-			(u32*)ndsHeader->arm9destination, iUncompressedSize,//, ndsHeader->arm9binarySize,
-            irqEnableStartSignatureThumbAlt, 4
-		);
-		if (cardIrqEnableOffset) {
-			*usesThumb = true;
-			dbg_printf("irq enable thumb alt found: ");
-		} else {
-			dbg_printf("irq enable thumb alt not found\n");
-		}
-	}
-
-	if (cardIrqEnableOffset) {
-		dbg_hexa((u32)cardIrqEnableOffset);
-		dbg_printf("\n");
-	}
-
-	dbg_printf("\n");
-	return cardIrqEnableOffset;
 }
 
 const u32* getMpuInitRegionSignature(u32 patchMpuRegion) {

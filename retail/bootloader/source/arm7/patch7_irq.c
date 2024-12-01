@@ -2,12 +2,15 @@
 #include <stddef.h> // NULL
 #include "debug_file.h"
 #include "find.h"
+#include "nds_header.h"
 #include "patch.h"
 #include "tonccpy.h"
 
 extern u32 newArm7binarySize;
+extern u32 iUncompressedSize;
 
 // irq enable
+// ARM7
 static const u32 a7IrqEnableStartSignature1[4]      = {0xE59FC028, 0xE1DC30B0, 0xE3A01000, 0xE1CC10B0}; // SDK <= 3
 static const u32 a7IrqEnableStartSignature4[4]      = {0xE92D4010, 0xE1A04000, 0xEBFFFFF6, 0xE59FC020}; // SDK >= 4
 static const u32 a7IrqEnableStartSignature4Alt[4]   = {0xE92D4010, 0xE1A04000, 0xEBFFFFE9, 0xE59FC020}; // SDK 5
