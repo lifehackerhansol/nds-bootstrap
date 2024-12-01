@@ -86,7 +86,6 @@ u32* findCardEndReadDma(const tNDSHeader* ndsHeader, const module_params_t* modu
 u32* findCardSetDma(const tNDSHeader* ndsHeader, const module_params_t* moduleParams, bool usesThumb);
 u32* findResetOffset(const tNDSHeader* ndsHeader, const module_params_t* moduleParams, bool* softResetMb);
 u32* findNandTmpJumpFuncOffset(const tNDSHeader* ndsHeader, const module_params_t* moduleParams);
-u32* findTwlSleepModeEndOffset(const tNDSHeader* ndsHeader);
 u32* findSharedFontPathOffset(const tNDSHeader* ndsHeader);
 
 // ARM7

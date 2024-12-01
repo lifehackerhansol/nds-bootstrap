@@ -1262,41 +1262,6 @@ void patchVolumeGetDSiWare(u32 addr) {
 	*(u32*)(addr+0xC) = 0x02FFFDF0;
 }
 
-void patchTwlSleepMode(const tNDSHeader* ndsHeader, const module_params_t* moduleParams) {
-	extern u32 arm7mbk;
-	if (arm7mbk != 0x080037C0 || moduleParams->sdk_version < 0x5010000) {
-		return;
-	}
-
-	u32* offset = patchOffsetCache.twlSleepModeEndOffset;
-	if (!patchOffsetCache.twlSleepModeEndChecked) {
-		offset = findTwlSleepModeEndOffset(ndsHeader);
-		if (offset) {
-			patchOffsetCache.twlSleepModeEndOffset = offset;
-		}
-		patchOffsetCache.twlSleepModeEndChecked = true;
-	}
-
-	if (!offset) {
-		return;
-	}
-
-	dbg_printf("twlSleepModeEnd location : ");
-	dbg_hexa((u32)offset);
-	dbg_printf("\n\n");
-
-	if (*offset == 0xE2855001 || *offset == 0xE2866001) {
-		offset--;
-		*offset = 0xE1A00000; // nop
-	} else {
-		u16* offsetThumb = (u16*)offset;
-		offsetThumb--;
-		offsetThumb--;
-		offsetThumb[0] = 0x46C0; // nop
-		offsetThumb[1] = 0x46C0; // nop
-	}
-}
-
 void patchInitLock(const tNDSHeader* ndsHeader, const module_params_t* moduleParams) {
 	u32* offset = patchOffsetCache.initLockEndOffset;
 	if (!patchOffsetCache.initLockEndOffset) {
