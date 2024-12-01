@@ -13,8 +13,6 @@
 
 extern u32 _io_dldi_features;
 
-extern u16 a9ScfgRom;
-
 extern u8 arm7newUnitCode;
 extern u32 newArm7binarySize;
 extern u32 arm7mbk;
@@ -116,153 +114,9 @@ u16* getOffsetFromBLThumb(u16* blOffset) {
 	return (u16*)((u32)blOffset + (codeOffset*2) + 4);
 }
 
-static bool patchWramClear(const tNDSHeader* ndsHeader) {
-	if (arm7newUnitCode == 0) {
-		u32* offset = patchOffsetCache.wramEndAddrOffset;
-		if (!patchOffsetCache.wramEndAddrOffset) {
-			offset = findWramEndAddrOffset(ndsHeader);
-			if (offset) {
-				patchOffsetCache.wramEndAddrOffset = offset;
-			}
-		}
-		if (offset) {
-			*offset = CARDENGINE_ARM7_LOCATION;
-			dbg_printf("WRAM end addr location : ");
-			dbg_hexa((u32)offset);
-			dbg_printf("\n\n");
-		} else {
-			return false;
-		}
-	}
-	if (newArm7binarySize == 0xCAB4) {
-		return true;
-	}
-	u32* offset = patchOffsetCache.wramClearOffset;
-	if (!patchOffsetCache.wramClearOffset) {
-		offset = findWramClearOffset(ndsHeader);
-		if (offset) {
-			patchOffsetCache.wramClearOffset = offset;
-		}
-	}
-	if (offset) {
-		bool notWithinSubroutine = (*(u16*)offset == 0x2008 || *((u16*)offset + 1) == 0xE3A0);
-		bool usesThumb = (notWithinSubroutine ? (*(u16*)offset == 0x2008) : (*((u16*)offset + 1) != 0xE92D));
-		if (notWithinSubroutine) {
-			if (usesThumb) {
-				*((u16*)offset + 20) = 0x2200;	// movs r2, #0
-			} else {
-				offset[13] = 0xE3A02000;	// mov r2, #0
-			}
-		} else {
-			if (usesThumb) {
-				if (arm7newUnitCode == 0) {
-					*((u16*)offset + 21) = 0x2200;	// movs r2, #0
-				} else {
-					*((u16*)offset + 11) = 0x2100;	// movs r1, #0
-					*((u16*)offset + 55) = 0x2100;	// movs r1, #0
-				}
-			} else {
-				if (arm7newUnitCode == 0) {
-					offset[*offset==0xE92D4038 ? 15 : (offset[1]==0xE24DD008 ? 18 : 17)] = 0xE3A02000;	// mov r2, #0
-				} else if (offset[1]==0xE24DD008) {
-					offset[10] = 0xE3A01000;	// mov r1, #0
-					offset[60] = 0xE3A01000;	// mov r1, #0
-				} else if (*offset==0xE92D43FE) {
-					offset[12] = 0xE3A01000;	// mov r1, #0
-					offset[61] = 0xE3A01000;	// mov r1, #0
-				} else {
-					offset[*offset==0xE92D40F8 ? 10 : 9]  = 0xE3A01000;	// mov r1, #0
-					offset[*offset==0xE92D40F8 ? 44 : 43] = 0xE3A01000;	// mov r1, #0
-				}
-			}
-		}
-		dbg_printf("WRAM clear location : ");
-		dbg_hexa((u32)offset);
-		dbg_printf("\n\n");
-	} else {
-		return false;
-	}
-	return true;
-}
-
 u32 vAddrOfRelocSrc = 0;
 u32 relocDestAtSharedMem = 0;
 u32 newSwiGetPitchTableAddr = 0;
-
-static u16 swi12Patch[2] =
-{
-	0xDF02, // SWI  0x02
-	0x4770, // BX LR
-};
-
-static u16 swiGetPitchTablePatch[8] =
-{
-	0x4902, // LDR  R1, =0x46A
-	0x1A40, // SUBS R0, R0, R1
-	0xDF1B, // SWI  0x1B
-	0x0400, // LSLS R0, R0, #0x10
-	0x0C00, // LSRS R0, R0, #0x10
-	0x4770, // BX LR
-	0x046A,
-	0
-};
-
-static void fixForDSiBios(const cardengineArm7* ce7, const tNDSHeader* ndsHeader, const module_params_t* moduleParams) {
-	u32* swi12Offset = patchOffsetCache.a7Swi12Offset;
-	u32* swiGetPitchTableOffset = patchOffsetCache.swiGetPitchTableOffset;
-	if (!patchOffsetCache.a7Swi12Offset) {
-		swi12Offset = a7_findSwi12Offset(ndsHeader);
-		if (swi12Offset) {
-			patchOffsetCache.a7Swi12Offset = swi12Offset;
-		}
-	}
-	if (!patchOffsetCache.swiGetPitchTableChecked) {
-		if (patchOffsetCache.a7IsThumb && !isSdk5(moduleParams)) {
-			swiGetPitchTableOffset = (u32*)findSwiGetPitchTableThumbOffset(ndsHeader);
-		} else {
-			swiGetPitchTableOffset = findSwiGetPitchTableOffset(ndsHeader, moduleParams);
-		}
-		if (swiGetPitchTableOffset) {
-			patchOffsetCache.swiGetPitchTableOffset = swiGetPitchTableOffset;
-		}
-		patchOffsetCache.swiGetPitchTableChecked = true;
-	}
-
-	if (a9ScfgRom == 1 && REG_SCFG_ROM != 0x703) {
-		// swi 0x12 call
-		if (swi12Offset) {
-			// Patch to call swi 0x02 instead of 0x12
-			tonccpy(swi12Offset, swi12Patch, 0x4);
-		}
-
-		// swi get pitch table
-		if (swiGetPitchTableOffset) {
-			// Patch
-			if (isSdk5(moduleParams)) {
-				toncset16(swiGetPitchTableOffset, 0x46C0, 6);
-			} else if (patchOffsetCache.a7IsThumb) {
-				tonccpy((u16*)newSwiGetPitchTableAddr, swiGetPitchTablePatch, 0x10);
-				u32 srcAddr = (u32)swiGetPitchTableOffset - vAddrOfRelocSrc + 0x37F8000;
-				u32 dstAddr = (u32)newSwiGetPitchTableAddr - vAddrOfRelocSrc + 0x37F8000;
-				const u16* swiGetPitchTableBranch = generateA7InstrThumb(srcAddr, dstAddr);
-				tonccpy(swiGetPitchTableOffset, swiGetPitchTableBranch, 0x4);
-
-				dbg_printf("swiGetPitchTable new location : ");
-				dbg_hexa(newSwiGetPitchTableAddr);
-				dbg_printf("\n\n");
-			} else {
-				tonccpy(swiGetPitchTableOffset, ce7->patches->j_twlGetPitchTable, 0xC);
-			}
-		}
-	}
-
-	dbg_printf("swi12 location : ");
-	dbg_hexa((u32)swi12Offset);
-	dbg_printf("\n\n");
-	dbg_printf("swiGetPitchTable location : ");
-	dbg_hexa((u32)swiGetPitchTableOffset);
-	dbg_printf("\n\n");
-}
 
 static void patchSleepMode(const tNDSHeader* ndsHeader) {
 	// Sleep

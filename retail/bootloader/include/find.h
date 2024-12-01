@@ -99,12 +99,7 @@ u32* findTwlSleepModeEndOffset(const tNDSHeader* ndsHeader);
 u32* findSharedFontPathOffset(const tNDSHeader* ndsHeader);
 
 // ARM7
-u32* findWramEndAddrOffset(const tNDSHeader* ndsHeader);
-u32* findWramClearOffset(const tNDSHeader* ndsHeader);
 bool a7GetReloc(const tNDSHeader* ndsHeader, const module_params_t* moduleParams);
-u32* a7_findSwi12Offset(const tNDSHeader* ndsHeader);
-u16* findSwiGetPitchTableThumbOffset(const tNDSHeader* ndsHeader);
-u32* findSwiGetPitchTableOffset(const tNDSHeader* ndsHeader, const module_params_t* moduleParams);
 u32* findUserDataAddrOffset(const tNDSHeader* ndsHeader, const module_params_t* moduleParams);
 u32* findSleepPatchOffset(const tNDSHeader* ndsHeader);
 u16* findSleepPatchOffsetThumb(const tNDSHeader* ndsHeader);
