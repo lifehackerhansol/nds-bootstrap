@@ -115,31 +115,6 @@ u16* getOffsetFromBLThumb(u16* blOffset) {
 u32 vAddrOfRelocSrc = 0;
 u32 relocDestAtSharedMem = 0;
 
-static void patchPostBoot(const tNDSHeader* ndsHeader) {
-	if (arm7mbk != 0x080037C0) {
-		return;
-	}
-
-	u32* postBootOffset = patchOffsetCache.postBootOffset;
-	if (!patchOffsetCache.postBootOffset) {
-		postBootOffset = findPostBootOffset(ndsHeader);
-		if (postBootOffset) {
-			patchOffsetCache.postBootOffset = postBootOffset;
-		}
-	}
-	if (postBootOffset) {
-		const bool usesThumb = (*(u16*)postBootOffset == 0xB5F8);
-		if (usesThumb) {
-			*(u16*)postBootOffset = 0x4770;	// bx lr
-		} else {
-			*postBootOffset = 0xE12FFF1E;	// bx lr
-		}
-		dbg_printf("Post boot location : ");
-		dbg_hexa((u32)postBootOffset);
-		dbg_printf("\n\n");
-	}
-}
-
 static bool patchCardIrqEnable(cardengineArm7* ce7, const tNDSHeader* ndsHeader, const module_params_t* moduleParams) {
 	// Card irq enable
 	u32* cardIrqEnableOffset = patchOffsetCache.a7CardIrqEnableOffset;

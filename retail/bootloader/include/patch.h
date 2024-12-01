@@ -150,6 +150,7 @@ void fixForDSiBios(const cardengineArm7* ce7, const tNDSHeader* ndsHeader, const
 void patchSleepMode(const tNDSHeader* ndsHeader);
 void patchSleepInputWrite(const tNDSHeader* ndsHeader, const module_params_t* moduleParams);
 void patchRamClear(const tNDSHeader* ndsHeader, const module_params_t* moduleParams);
+void patchPostBoot(const tNDSHeader* ndsHeader);
 
 void patchBinary(cardengineArm9* ce9, const tNDSHeader* ndsHeader, module_params_t* moduleParams);
 u32 patchCardNdsArm9(
