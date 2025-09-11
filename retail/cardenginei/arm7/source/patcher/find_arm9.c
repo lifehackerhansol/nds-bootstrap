@@ -1,7 +1,7 @@
 #include <stddef.h> // NULL
-#include "patch.h"
+#include "patcher/patch.h"
 #include "nds_header.h"
-#include "find.h"
+#include "patcher/find.h"
 #include "debug_file.h"
 
 //#define memset __builtin_memset

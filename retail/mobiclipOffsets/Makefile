@@ -18,9 +18,12 @@ FILES			:= files
 #---------------------------------------------------------------------------------
 # Goals for Build
 #---------------------------------------------------------------------------------
-.PHONY:
+.PHONY: all clean
 
 all:	$(OUTPUT_DIR)/mobiclipOffsets.pck
 
 $(OUTPUT_DIR)/mobiclipOffsets.pck: $(FILES)
 	$(PYTHON) pack.py $^ -o $@
+
+clean:
+	rm -f $(OUTPUT_DIR)/mobiclipOffsets.pck

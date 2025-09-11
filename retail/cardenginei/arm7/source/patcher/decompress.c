@@ -17,7 +17,7 @@
 #include "nds_header.h"
 #include "module_params.h"
 #include "unpatched_funcs.h"
-#include "decompress.h"
+#include "patcher/decompress.h"
 //#include "debug_file.h"
 #include "locations.h"
 #include "ndma.h"

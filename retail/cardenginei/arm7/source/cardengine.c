@@ -45,11 +45,11 @@
 
 #ifndef TWLSDK
 // Patcher
-#include "common.h"
-#include "decompress.h"
-#include "patch.h"
-#include "find.h"
-#include "hook.h"
+#include "patcher/common.h"
+#include "patcher/decompress.h"
+#include "patcher/patch.h"
+#include "patcher/find.h"
+#include "patcher/hook.h"
 #endif
 
 // TWL soft-reset
@@ -203,7 +203,7 @@ extern u32 romMap[][3];
 
 u32 currentSrlAddr = 0;
 
-void i2cIRQHandler(void);
+void CE_i2cIRQHandler(void);
 
 static void unlaunchSetFilename(bool boot) {
 	tonccpy((u8*)0x02000800, unlaunchAutoLoadID, 12);
@@ -1875,7 +1875,7 @@ void myIrqHandlerVBlank(void) {
 
 	#ifndef TWLSDK
 	if (valueBits & powerCodeOnVBlank) {
-		i2cIRQHandler();
+		CE_i2cIRQHandler();
 	}
 	#endif
 
@@ -1965,7 +1965,7 @@ void myIrqHandlerVBlank(void) {
 }
 
 #ifndef TWLSDK
-void i2cIRQHandler(void) {
+void CE_i2cIRQHandler(void) {
 	int cause = (i2cReadRegister(I2C_PM, I2CREGPM_PWRIF) & 0x3) | (i2cReadRegister(I2C_GPIO, 0x02)<<2);
 
 	switch (cause & 3) {

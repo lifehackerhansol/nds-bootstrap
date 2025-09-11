@@ -1,365 +1,130 @@
-#---------------------------------------------------------------------------------
-.SUFFIXES:
-#---------------------------------------------------------------------------------
-.SECONDARY:
+# SPDX-License-Identifier: CC0-1.0
+#
+# SPDX-FileContributor: Antonio Niño Díaz, 2023
 
-ifeq ($(strip $(DEVKITARM)),)
-$(error "Please set DEVKITARM in your environment. export DEVKITARM=<path to>devkitARM")
-endif
+BLOCKSDS	?= /opt/blocksds/core
+BLOCKSDSEXT	?= /opt/blocksds/external
 
-# These set the information text in the nds file
-GAME_TITLE     := nds-bootstrap
-GAME_SUBTITLE1 := ahezard & Rocket Robz
-
-include $(DEVKITARM)/ds_rules
-
-export VERSION_MAJOR	:= 0
-export VERSION_MINOR	:= 17
-export VERSION_PATCH	:= 0
-
-
-VERSION	:=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
-#---------------------------------------------------------------------------------
-# TARGET is the name of the output
-# BUILD is the directory where object files & intermediate files will be placed
-# SOURCES is a list of directories containing source code
-# INCLUDES is a list of directories containing extra header files
-# DATA is a list of directories containing binary files embedded using bin2o
-# GRAPHICS is a list of directories containing image files to be converted with grit
-#---------------------------------------------------------------------------------
-TARGET		:=	nds-bootstrap
-BIN		:=	bin
-ASSETS		:=	assets
-NITRODATA	:=	nitrofiles
-
-#---------------------------------------------------------------------------------
-# no real need to edit anything past this point unless you need to add additional
-# rules for different file extensions
-#---------------------------------------------------------------------------------
-ifneq ($(BUILD),$(notdir $(CURDIR)))
-#---------------------------------------------------------------------------------
-
-export OUTPUT	:=	$(CURDIR)/$(BIN)/$(TARGET).nds
-
-export CC		:=	$(PREFIX)gcc
-export CXX		:=	$(PREFIX)g++
-export AR		:=	$(PREFIX)ar
-export OBJCOPY	:=	$(PREFIX)objcopy
-export CPP		:=	$(PREFIX)cpp
-
-#---------------------------------------------------------------------------------
-# use CXX for linking C++ projects, CC for standard C
-#---------------------------------------------------------------------------------
-ifeq ($(strip $(CPPFILES)),)
-#---------------------------------------------------------------------------------
-	export LD	:=	$(CC)
-#---------------------------------------------------------------------------------
+ifneq (,$(shell which python3))
+PYTHON	:= python3
+else ifneq (,$(shell which python2))
+PYTHON	:= python2
+else ifneq (,$(shell which python))
+PYTHON	:= python
 else
-#---------------------------------------------------------------------------------
-	export LD	:=	$(CXX)
-#---------------------------------------------------------------------------------
+$(error "Python not found in PATH, please install it.")
 endif
-#---------------------------------------------------------------------------------
 
-#icons := $(wildcard *.bmp)
-#ifneq (,$(findstring $(TARGET).bmp,$(icons)))
-#	export GAME_ICON := $(CURDIR)/$(TARGET).bmp
-#else
-#	ifneq (,$(findstring icon.bmp,$(icons)))
-#		export GAME_ICON := $(CURDIR)/icon.bmp
-#	endif
-#endif
-export GAME_ICON := $(CURDIR)/$(ASSETS)/icon.bmp
+# User config
+# ===========
 
-#.PHONY: cardengine_arm7 cardengine_arm9 bootloader BootStrap clean
-.PHONY: all dist release nightly bootloader bootloader2 bootloaderi bootloaderi2 cardengine_arm7 cardengine_arm7_ace3dsp cardengine_arm7_music cardengine_arm9_igm cardengine_arm9_igm_extmem cardengine_arm9 cardengine_arm9_32 cardengine_arm9_start cardengine_arm9_start_foto cardengine_arm9_alt cardengine_arm9_alt_gsdd cardengine_arm9_alt2 cardengine_arm9_alt3 cardengine_arm9_extmem cardengine_arm9_extmem_gsdd cardengine_arm9_extmem_start cardengine_arm9_extmem_foto cardenginei_arm7 cardenginei_arm7_alt cardenginei_arm7_twlsdk cardenginei_arm7_twlsdk3 cardenginei_arm7_dsiware cardenginei_arm7_dsiware3 cardenginei_arm7_cheat cardenginei_arm9_colorlut cardenginei_arm9_igm cardenginei_arm9 cardenginei_arm9_gsdd cardenginei_arm9_dldi cardenginei_arm9_gsdd_dldi cardenginei_arm9_twlsdk cardenginei_arm9_twlsdk3 cardenginei_arm9_twlsdk_dldi cardenginei_arm9_twlsdk3_dldi cardenginei_arm9_dsiware cardenginei_arm9_dsiware3 asyncLoadSettings preLoadSettings apfix apfixPostCardRead mobiclipOffsets dsi2dsSavePatches arm7/$(TARGET).elf arm9/$(TARGET).elf clean
+NAME		:= nds-bootstrap
 
-all:	$(OUTPUT)
+GAME_TITLE	:= Combined ARM7+ARM9 template
+GAME_SUBTITLE	:= Built with BlocksDS
+GAME_AUTHOR	:= github.com/blocksds/sdk
+GAME_ICON	:= icon.bmp
 
-dist:	all
-#	@rm	-fr	hbmenu
-#	@mkdir hbmenu
-#	@cp hbmenu.nds hbmenu/BOOT.NDS
-#	@cp BootStrap/_BOOT_MP.NDS BootStrap/TTMENU.DAT BootStrap/_DS_MENU.DAT BootStrap/ez5sys.bin BootStrap/akmenu4.nds hbmenu
-#	@tar -cvjf hbmenu-$(VERSION).tar.bz2 hbmenu testfiles README.md COPYING -X exclude.lst
+# DLDI and internal SD slot of DSi
+# --------------------------------
 
-release:	$(OUTPUT)
-	@rm -f $(CURDIR)/$(BIN)/$(TARGET)-release.nds
-	@mv $(OUTPUT) $(CURDIR)/$(BIN)/$(TARGET)-release.nds
+# Root folder of the SD image
+SDROOT		:= sdroot
+# Name of the generated image it "DSi-1.sd" for no$gba in DSi mode
+SDIMAGE		:= image.bin
 
-nightly:	$(OUTPUT)
-	@rm -f $(CURDIR)/$(BIN)/$(TARGET)-nightly.nds
-	@mv $(OUTPUT) $(CURDIR)/$(BIN)/$(TARGET)-nightly.nds
+# Source code paths
+# -----------------
 
-$(OUTPUT):	$(BIN) arm7/$(TARGET).elf arm9/$(TARGET).elf
-	ndstool	-c $(OUTPUT) -7 arm7/$(TARGET).elf -9 arm9/$(TARGET).elf -d $(NITRODATA) \
-			-b $(GAME_ICON) "$(GAME_TITLE);$(GAME_SUBTITLE1)" \
-			-g KBSE 01 "NDSBOOTSTRAP" -z 80040000 -u 00030004 -a 00000138 -p 00000001
+# List of folders to combine into the root of NitroFS:
+NITROFSDIR	:=
 
-#---------------------------------------------------------------------------------
-arm7/$(TARGET).elf:
-	@$(MAKE) -C arm7
-	
-#---------------------------------------------------------------------------------
-arm9/$(TARGET).elf:	bootloader bootloader2 bootloaderi bootloaderi2 asyncLoadSettings preLoadSettings apfix apfixPostCardRead mobiclipOffsets dsi2dsSavePatches
-	@$(MAKE) -C arm9
+# Tools
+# -----
 
-#---------------------------------------------------------------------------------		
-bootloader: cardengine_arm7 cardengine_arm7_ace3dsp cardengine_arm7_music cardengine_arm9_igm cardengine_arm9_igm_extmem cardengine_arm9 cardengine_arm9_32 cardengine_arm9_start cardengine_arm9_start_foto cardengine_arm9_alt cardengine_arm9_alt_gsdd cardengine_arm9_alt2 cardengine_arm9_alt3 cardengine_arm9_extmem cardengine_arm9_extmem_gsdd cardengine_arm9_extmem_start cardengine_arm9_extmem_foto
-	@$(MAKE) -C bootloader
+MAKE		:= make
+RM		:= rm -rf
 
-#---------------------------------------------------------------------------------		
-bootloader2:
-	@$(MAKE) -C bootloader2
+# Verbose flag
+# ------------
 
-#---------------------------------------------------------------------------------		
-bootloaderi: cardenginei_arm7 cardenginei_arm7_alt cardenginei_arm7_twlsdk cardenginei_arm7_twlsdk3 cardenginei_arm7_dsiware cardenginei_arm7_dsiware3 cardenginei_arm7_cheat cardenginei_arm9_colorlut cardenginei_arm9_igm cardenginei_arm9 cardenginei_arm9_gsdd cardenginei_arm9_dldi cardenginei_arm9_gsdd_dldi cardenginei_arm9_twlsdk cardenginei_arm9_twlsdk3 cardenginei_arm9_twlsdk_dldi cardenginei_arm9_twlsdk3_dldi cardenginei_arm9_dsiware cardenginei_arm9_dsiware3
-	@$(MAKE) -C bootloaderi
+ifeq ($(VERBOSE),1)
+V		:=
+else
+V		:= @
+endif
 
-#---------------------------------------------------------------------------------		
-bootloaderi2:
-	@$(MAKE) -C bootloaderi2
+# Directories
+# -----------
 
-#---------------------------------------------------------------------------------		
-cardengine_arm7:
-	@$(MAKE) -C cardengine/arm7
+ARM9DIR		:= arm9
+ARM7DIR		:= arm7
 
-#---------------------------------------------------------------------------------		
-cardengine_arm7_ace3dsp:
-	@$(MAKE) -C cardengine/arm7_ace3dsp
+# Build artfacts
+# --------------
 
-#---------------------------------------------------------------------------------		
-cardengine_arm7_music:
-	@$(MAKE) -C cardengine/arm7_music
+ROM		:= $(NAME).nds
 
-#---------------------------------------------------------------------------------		
-cardengine_arm9_igm:
-	@$(MAKE) -C cardengine/arm9_igm
+# Targets
+# -------
 
-#---------------------------------------------------------------------------------		
-cardengine_arm9_igm_extmem:
-	@$(MAKE) -C cardengine/arm9_igm_extmem
+.PHONY: all clean arm9 arm7 dldipatch sdimage
 
-#---------------------------------------------------------------------------------		
-cardengine_arm9:
-	@$(MAKE) -C cardengine/arm9
+all: $(ROM)
 
-#---------------------------------------------------------------------------------		
-cardengine_arm9_32:
-	@$(MAKE) -C cardengine/arm9_32
+# Include the targets after the `all` target so that the default target builds the complete package
+include Makefile.targets
 
-#---------------------------------------------------------------------------------		
-cardengine_arm9_start:
-	@$(MAKE) -C cardengine/arm9_start
-
-#---------------------------------------------------------------------------------		
-cardengine_arm9_start_foto:
-	@$(MAKE) -C cardengine/arm9_start_foto
-
-#---------------------------------------------------------------------------------		
-cardengine_arm9_alt:
-	@$(MAKE) -C cardengine/arm9_alt
-
-#---------------------------------------------------------------------------------		
-cardengine_arm9_alt_gsdd:
-	@$(MAKE) -C cardengine/arm9_alt_gsdd
-
-#---------------------------------------------------------------------------------		
-cardengine_arm9_alt2:
-	@$(MAKE) -C cardengine/arm9_alt2
-
-#---------------------------------------------------------------------------------		
-cardengine_arm9_alt3:
-	@$(MAKE) -C cardengine/arm9_alt3
-
-#---------------------------------------------------------------------------------		
-cardengine_arm9_extmem:
-	@$(MAKE) -C cardengine/arm9_extmem
-
-#---------------------------------------------------------------------------------		
-cardengine_arm9_extmem_gsdd:
-	@$(MAKE) -C cardengine/arm9_extmem_gsdd
-
-#---------------------------------------------------------------------------------		
-cardengine_arm9_extmem_start:
-	@$(MAKE) -C cardengine/arm9_extmem_start
-
-#---------------------------------------------------------------------------------		
-cardengine_arm9_extmem_foto:
-	@$(MAKE) -C cardengine/arm9_extmem_foto
-
-#---------------------------------------------------------------------------------		
-cardenginei_arm7:
-	@$(MAKE) -C cardenginei/arm7
-
-#---------------------------------------------------------------------------------		
-cardenginei_arm7_alt:
-	@$(MAKE) -C cardenginei/arm7_alt
-
-#---------------------------------------------------------------------------------		
-cardenginei_arm7_twlsdk:
-	@$(MAKE) -C cardenginei/arm7_twlsdk
-
-#---------------------------------------------------------------------------------		
-cardenginei_arm7_twlsdk3:
-	@$(MAKE) -C cardenginei/arm7_twlsdk3
-
-#---------------------------------------------------------------------------------		
-cardenginei_arm7_dsiware:
-	@$(MAKE) -C cardenginei/arm7_dsiware
-
-#---------------------------------------------------------------------------------		
-cardenginei_arm7_dsiware3:
-	@$(MAKE) -C cardenginei/arm7_dsiware3
-
-#---------------------------------------------------------------------------------		
-cardenginei_arm7_cheat:
-	@$(MAKE) -C cardenginei/arm7_cheat
-
-#---------------------------------------------------------------------------------		
-cardenginei_arm9_colorlut:
-	@$(MAKE) -C cardenginei/arm9_colorlut
-
-#---------------------------------------------------------------------------------		
-cardenginei_arm9_igm:
-	@$(MAKE) -C cardenginei/arm9_igm
-
-#---------------------------------------------------------------------------------		
-cardenginei_arm9:
-	@$(MAKE) -C cardenginei/arm9
-
-#---------------------------------------------------------------------------------		
-cardenginei_arm9_gsdd:
-	@$(MAKE) -C cardenginei/arm9_gsdd
-
-#---------------------------------------------------------------------------------		
-cardenginei_arm9_dldi:
-	@$(MAKE) -C cardenginei/arm9_dldi
-
-#---------------------------------------------------------------------------------		
-cardenginei_arm9_gsdd_dldi:
-	@$(MAKE) -C cardenginei/arm9_gsdd_dldi
-
-#---------------------------------------------------------------------------------		
-cardenginei_arm9_twlsdk:
-	@$(MAKE) -C cardenginei/arm9_twlsdk
-
-#---------------------------------------------------------------------------------		
-cardenginei_arm9_twlsdk3:
-	@$(MAKE) -C cardenginei/arm9_twlsdk3
-
-#---------------------------------------------------------------------------------		
-cardenginei_arm9_twlsdk_dldi:
-	@$(MAKE) -C cardenginei/arm9_twlsdk_dldi
-
-#---------------------------------------------------------------------------------		
-cardenginei_arm9_twlsdk3_dldi:
-	@$(MAKE) -C cardenginei/arm9_twlsdk3_dldi
-
-#---------------------------------------------------------------------------------		
-cardenginei_arm9_dsiware:
-	@$(MAKE) -C cardenginei/arm9_dsiware
-
-#---------------------------------------------------------------------------------		
-cardenginei_arm9_dsiware3:
-	@$(MAKE) -C cardenginei/arm9_dsiware3
-
-#---------------------------------------------------------------------------------		
-asyncLoadSettings:
-	@$(MAKE) -C asyncLoadSettings
-
-#---------------------------------------------------------------------------------		
-preLoadSettings:
-	@$(MAKE) -C preLoadSettings
-
-#---------------------------------------------------------------------------------		
-apfix:
-	@$(MAKE) -C apfix
-
-#---------------------------------------------------------------------------------		
-apfixPostCardRead:
-	@$(MAKE) -C apfixPostCardRead
-
-#---------------------------------------------------------------------------------		
-mobiclipOffsets:
-	@$(MAKE) -C mobiclipOffsets
-
-#---------------------------------------------------------------------------------		
-dsi2dsSavePatches:
-	@$(MAKE) -C dsi2dsSavePatches
-
-#---------------------------------------------------------------------------------
-#$(BUILD):
-#	@[ -d $@ ] || mkdir -p $@
-#	@make --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
-
-#---------------------------------------------------------------------------------
 clean:
-	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).nds $(TARGET).nds.orig.nds $(TARGET).arm9 $(BIN)
-	@$(MAKE) -C arm7 clean
-	@$(MAKE) -C arm9 clean
-	@$(MAKE) -C cardengine/arm7 clean
-	@$(MAKE) -C cardengine/arm7_ace3dsp clean
-	@$(MAKE) -C cardengine/arm7_music clean
-	@$(MAKE) -C cardengine/arm9_igm clean
-	@$(MAKE) -C cardengine/arm9_igm_extmem clean
-	@$(MAKE) -C cardengine/arm9 clean
-	@$(MAKE) -C cardengine/arm9_start clean
-	@$(MAKE) -C cardengine/arm9_start_foto clean
-	@$(MAKE) -C cardengine/arm9_alt clean
-	@$(MAKE) -C cardengine/arm9_alt_gsdd clean
-	@$(MAKE) -C cardengine/arm9_alt2 clean
-	@$(MAKE) -C cardengine/arm9_alt3 clean
-	@$(MAKE) -C cardengine/arm9_extmem clean
-	@$(MAKE) -C cardengine/arm9_extmem_gsdd clean
-	@$(MAKE) -C cardengine/arm9_extmem_start clean
-	@$(MAKE) -C cardengine/arm9_extmem_foto clean
-	@$(MAKE) -C cardenginei/arm7 clean
-	@$(MAKE) -C cardenginei/arm7_alt clean
-	@$(MAKE) -C cardenginei/arm7_twlsdk clean
-	@$(MAKE) -C cardenginei/arm7_twlsdk3 clean
-	@$(MAKE) -C cardenginei/arm7_dsiware clean
-	@$(MAKE) -C cardenginei/arm7_dsiware3 clean
-	@$(MAKE) -C cardenginei/arm7_cheat clean
-	@$(MAKE) -C cardenginei/arm7_cheatonly clean
-	@$(MAKE) -C cardenginei/arm9_colorlut clean
-	@$(MAKE) -C cardenginei/arm9_igm clean
-	@$(MAKE) -C cardenginei/arm9 clean
-	@$(MAKE) -C cardenginei/arm9_gsdd clean
-	@$(MAKE) -C cardenginei/arm9_dldi clean
-	@$(MAKE) -C cardenginei/arm9_gsdd_dldi clean
-	@$(MAKE) -C cardenginei/arm9_twlsdk clean
-	@$(MAKE) -C cardenginei/arm9_twlsdk_dldi clean
-	@$(MAKE) -C cardenginei/arm9_twlsdk3 clean
-	@$(MAKE) -C cardenginei/arm9_twlsdk3_dldi clean
-	@$(MAKE) -C cardenginei/arm9_dsiware clean
-	@$(MAKE) -C cardenginei/arm9_dsiware3 clean
-	@rm -f $(NITRODATA)/asyncLoadSettings.pck
-	@rm -f $(NITRODATA)/preLoadSettingsMEP.pck
-	@rm -f $(NITRODATA)/preLoadSettingsDSi.pck
-	@rm -f $(NITRODATA)/preLoadSettings3DS.pck
-	@rm -f $(NITRODATA)/apfix.pck
-	@rm -f $(NITRODATA)/apfixPostCardRead.pck
-	@rm -f $(NITRODATA)/mobiclipOffsets.pck
-	@rm -f $(NITRODATA)/dsi2dsSavePatches.pck
-	@$(MAKE) -C bootloader clean
-	@$(MAKE) -C bootloader2 clean
-	@$(MAKE) -C bootloaderi clean
-	@$(MAKE) -C bootloaderi2 clean
+	@echo "  CLEAN"
+	$(V)$(MAKE) -f Makefile.arm9 clean --no-print-directory
+	$(V)$(MAKE) -f Makefile.arm7 clean --no-print-directory
+	$(V)$(foreach target,$(CARDENGINE_ARM7_DEPS),$(call cardengine7_clean,$(subst cardengine_,,$(target))))
+	$(V)$(foreach target,$(CARDENGINE_ARM9_DEPS),$(call cardengine9_clean,$(subst cardengine_,,$(target))))
+	$(V)$(foreach target,$(CARDENGINE_ARM9_IGM_DEPS),$(call cardengine9_igm_clean,$(subst cardengine_,,$(target))))
+	$(V)$(foreach target,$(CARDENGINEI_ARM7_DEPS),$(call cardengine7i_clean,$(subst cardengine_,,$(target))))
+	$(V)$(foreach target,$(CARDENGINEI_ARM7_DSIWARE_DEPS),$(call cardengine7i_dsiware_clean,$(subst cardengine_,,$(target))))
+	$(V)$(foreach target,$(CARDENGINEI_ARM7_CHEAT_DEPS),$(call cardengine7i_cheat_clean,$(subst cardengine_,,$(target))))
+	$(V)$(foreach target,$(CARDENGINEI_ARM9_DEPS) ,$(call cardengine9i_clean,$(subst cardengine_,,$(target))))
+	$(V)$(foreach target,$(CARDENGINEI_ARM9_COLORLUT_DEPS),$(call cardengine9i_colorlut_clean,$(subst cardengine_,,$(target))))
+	$(V)$(foreach target,$(CARDENGINEI_ARM9_DSIWARE_DEPS),$(call cardengine9i_dsiware_clean,$(subst cardengine_,,$(target))))
+	$(V)$(foreach target,$(CARDENGINEI_ARM9_IGM_DEPS),$(call cardengine9i_igm_clean,$(subst cardengine_,,$(target))))
+	$(V)$(foreach target,$(ASSETS),$(call assets_clean,$(target)))
+	$(V)$(RM) $(ROM) build $(SDIMAGE)
 
-$(BIN):
-	@mkdir -p $(BIN)
+arm9:
+	$(V)+$(MAKE) -f Makefile.arm9 --no-print-directory
 
-#---------------------------------------------------------------------------------
-else
+arm7:
+	$(V)+$(MAKE) -f Makefile.arm7 --no-print-directory
 
-#---------------------------------------------------------------------------------
-%.bin.o	:	%.bin
-#---------------------------------------------------------------------------------
-	@echo $(notdir $<)
-	$(bin2o)
+ifneq ($(strip $(NITROFSDIR)),)
+# Additional arguments for ndstool
+NDSTOOL_ARGS	:= -d $(NITROFSDIR)
 
-#---------------------------------------------------------------------------------------
+# Make the NDS ROM depend on the filesystem only if it is needed
+$(ROM): $(NITROFSDIR)
 endif
-#---------------------------------------------------------------------------------------
+
+# Combine the title strings
+ifeq ($(strip $(GAME_SUBTITLE)),)
+    GAME_FULL_TITLE := $(GAME_TITLE);$(GAME_AUTHOR)
+else
+    GAME_FULL_TITLE := $(GAME_TITLE);$(GAME_SUBTITLE);$(GAME_AUTHOR)
+endif
+
+$(ROM): $(SUBTARGETS) arm9 arm7
+	@echo "  NDSTOOL $@"
+	$(V)$(BLOCKSDS)/tools/ndstool/ndstool -c $@ \
+		-7 build/arm7.elf -9 build/arm9.elf \
+		-b $(GAME_ICON) "$(GAME_FULL_TITLE)" \
+		$(NDSTOOL_ARGS)
+
+sdimage:
+	@echo "  MKFATIMG $(SDIMAGE) $(SDROOT)"
+	$(V)$(BLOCKSDS)/tools/mkfatimg/mkfatimg -t $(SDROOT) $(SDIMAGE)
+
+dldipatch: $(ROM)
+	@echo "  DLDIPATCH $(ROM)"
+	$(V)$(BLOCKSDS)/tools/dldipatch/dldipatch patch \
+		$(BLOCKSDS)/sys/dldi_r4/r4tf.dldi $(ROM)

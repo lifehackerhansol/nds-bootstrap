@@ -18,9 +18,12 @@ FILES		:= files files/cht
 #---------------------------------------------------------------------------------
 # Goals for Build
 #---------------------------------------------------------------------------------
-.PHONY:
+.PHONY: all clean
 
 all:	$(OUTPUT_DIR)/apfix.pck
 
 $(OUTPUT_DIR)/apfix.pck: $(FILES)
 	$(PYTHON) pack.py $^ -o $@
+
+clean:
+	rm -f $(OUTPUT_DIR)/apfix.pck

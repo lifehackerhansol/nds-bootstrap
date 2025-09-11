@@ -18,9 +18,12 @@ FILES			:= files
 #---------------------------------------------------------------------------------
 # Goals for Build
 #---------------------------------------------------------------------------------
-.PHONY:
+.PHONY: all clean
 
 all:	$(OUTPUT_DIR)/dsi2dsSavePatches.pck
 
 $(OUTPUT_DIR)/dsi2dsSavePatches.pck: $(FILES)
 	$(PYTHON) pack.py $^ -o $@
+
+clean:
+	rm -f $(OUTPUT_DIR)/dsi2dsSavePatches.pck

@@ -17,7 +17,7 @@
 @ Clears ICache and Dcache, and resets the protection units
 @ Originally written by Darkain, modified by Chishm
 
-#include "asminc.h"
+#include <nds/asminc.h>
 
 .arm
 

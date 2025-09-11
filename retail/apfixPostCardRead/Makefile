@@ -1,133 +1,95 @@
-#---------------------------------------------------------------------------------
-.SUFFIXES:
-#---------------------------------------------------------------------------------
-ifeq ($(strip $(DEVKITARM)),)
-$(error "Please set DEVKITARM in your environment. export DEVKITARM=<path to>devkitARM")
-endif
+# SPDX-License-Identifier: CC0-1.0
+#
+# SPDX-FileContributor: Antonio Niño Díaz, 2023
 
-include $(DEVKITARM)/ds_rules
+export BLOCKSDS			?= /opt/blocksds/core
+export BLOCKSDSEXT		?= /opt/blocksds/external
 
-#---------------------------------------------------------------------------------
-# BUILD is the directory where object files & intermediate files will be placed
-# SOURCES is a list of directories containing source code
-# INCLUDES is a list of directories containing extra header files
-# DATA is a list of directories containing binary files
-# all directories are relative to this makefile
-#---------------------------------------------------------------------------------
-BUILD		:=	build
-SOURCES		:=	source
-INCLUDES	:=	include ../../common/include
-DATA		:=	data
+export WONDERFUL_TOOLCHAIN	?= /opt/wonderful
+ARM_NONE_EABI_PATH	?= $(WONDERFUL_TOOLCHAIN)/toolchain/gcc-arm-none-eabi/bin/
 
+# Source code paths
+# -----------------
 
-#---------------------------------------------------------------------------------
-# options for code generation
-#---------------------------------------------------------------------------------
-ARCH	:=	-mthumb-interwork -march=armv5te -mtune=arm946e-s
+SOURCEDIRS	:= source
 
-CFLAGS	:=	-g -Wall -Os\
- 			-march=armv5te -mtune=arm946e-s -fomit-frame-pointer\
-			-ffast-math \
-			$(ARCH)
+# Defines passed to all files
+# ---------------------------
 
-# ADD -DDEBUG here for logging/debug
-CFLAGS	+=	$(INCLUDE) -DARM9
-CXXFLAGS	:=	$(CFLAGS) -fno-rtti -fno-exceptions
+DEFINES		:=
 
-ASFLAGS	:=	-g $(ARCH) $(INCLUDE)
+# Build artifacts
+# -----------------
 
-LDFLAGS	=	-nostartfiles -T pack.ld -g $(ARCH) -Wl,-Map,$(notdir $*.map)
+NAME		:= $(shell basename $(CURDIR))
+BUILDDIR	:= build/$(NAME)
+PCK		:= $(CURDIR)/../nitrofiles/$(NAME).pck
 
-#---------------------------------------------------------------------------------
-# any extra libraries we wish to link with the project (order is important)
-#---------------------------------------------------------------------------------
-LIBS	:=
+# Tools
+# -----
 
-#---------------------------------------------------------------------------------
-# list of directories containing libraries, this must be the top level containing
-# include and lib
-#---------------------------------------------------------------------------------
-LIBDIRS	:=	$(LIBNDS)
- 
-  
-#---------------------------------------------------------------------------------
-# no real need to edit anything past this point unless you need to add additional
-# rules for different file extensions
-#---------------------------------------------------------------------------------
-ifneq ($(BUILD),$(notdir $(CURDIR)))
-#---------------------------------------------------------------------------------
+PREFIX		:= $(ARM_NONE_EABI_PATH)arm-none-eabi-
+CC		:= $(PREFIX)gcc
+OBJCOPY		:= $(PREFIX)objcopy
+MKDIR		:= mkdir
+RM		:= rm -rf
 
-export TARGET	:=	apfixPostCardRead
-export OUTPUT	:=	$(CURDIR)/../nitrofiles/$(TARGET)
-export DEPSDIR	:=	$(CURDIR)/$(BUILD)
+# Verbose flag
+# ------------
 
-export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
-					$(foreach dir,$(DATA),$(CURDIR)/$(dir))
-
-CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
-CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
-SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
-BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
-
-#---------------------------------------------------------------------------------
-# use CXX for linking C++ projects, CC for standard C
-#---------------------------------------------------------------------------------
-ifeq ($(strip $(CPPFILES)),)
-#---------------------------------------------------------------------------------
-	export LD	:=	$(CC)
-#---------------------------------------------------------------------------------
+ifeq ($(VERBOSE),1)
+V		:=
 else
-#---------------------------------------------------------------------------------
-	export LD	:=	$(CXX)
-#---------------------------------------------------------------------------------
+V		:= @
 endif
-#---------------------------------------------------------------------------------
 
-export OFILES	:=	$(addsuffix .o,$(BINFILES)) \
-					$(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
+# Source files
+# ------------
 
-export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
-					$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
-					-I$(CURDIR)/$(BUILD)
- 
-export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
- 
-.PHONY: $(BUILD) clean
- 
-#---------------------------------------------------------------------------------
-$(BUILD):
-	@[ -d $@ ] || mkdir -p $@
-	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
+SOURCES_S	:= $(shell find -L $(SOURCEDIRS) -name "*.s")
 
-#---------------------------------------------------------------------------------
+# Compiler and linker flags
+# -------------------------
+
+ARCH		:= -mthumb -mcpu=arm7tdmi
+
+ASFLAGS		+= -x assembler-with-cpp $(DEFINES) \
+		   $(ARCH) -ffunction-sections -fdata-sections
+
+# Intermediate build files
+# ------------------------
+
+OBJS_SOURCES	:= $(addsuffix .o,$(addprefix $(BUILDDIR)/,$(SOURCES_S))) \
+		   $(addsuffix .o,$(addprefix $(BUILDDIR)/,$(SOURCES_C))) \
+		   $(addsuffix .o,$(addprefix $(BUILDDIR)/,$(SOURCES_CPP)))
+
+OBJS		:= $(OBJS_SOURCES)
+
+DEPS		:= $(OBJS:.o=.d)
+
+# Targets
+# -------
+
+.PHONY: all clean
+
+all: $(PCK)
+
+$(PCK): $(OBJS)
+	$(V)$(OBJCOPY) -O binary $< $@
+
 clean:
-	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).pck $(TARGET).elf
- 
- 
-#---------------------------------------------------------------------------------
-else
+	@echo "  CLEAN.7"
+	$(V)$(RM) $(PCK) $(BUILDDIR)
 
-#---------------------------------------------------------------------------------
-# main targets
-#---------------------------------------------------------------------------------
-$(OUTPUT).pck:	$(DEPSDIR)/$(TARGET).elf
-$(DEPSDIR)/$(TARGET).elf:	pack.ld $(OFILES)
-#	@echo linking $(notdir $@)
-#	@$(LD)  $(LDFLAGS) $(OFILES) $(LIBPATHS) $(LIBS) -o $@
+# Rules
+# -----
 
-pack.ld:	$(CURDIR)/../pack.ld.in
-	$(CPP) -P $(INCLUDE) $< $@
+$(BUILDDIR)/%.s.o : %.s
+	@echo "  AS.7    $<"
+	@$(MKDIR) -p $(@D)
+	$(V)$(CC) $(ASFLAGS) -MMD -MP -c -o $@ $<
 
+# Include dependency files if they exist
+# --------------------------------------
 
-#---------------------------------------------------------------------------------
-%.pck	:	%.elf
-#---------------------------------------------------------------------------------
-	@$(OBJCOPY) -O binary $< $@
-	@echo built ... $(notdir $@)
-
--include $(DEPSDIR)/*.d
- 
-#---------------------------------------------------------------------------------------
-endif
-#---------------------------------------------------------------------------------------
+-include $(DEPS)

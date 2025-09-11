@@ -25,7 +25,7 @@ FILES3DSES		:= files-3ds-es
 #---------------------------------------------------------------------------------
 # Goals for Build
 #---------------------------------------------------------------------------------
-.PHONY:
+.PHONY: all clean
 
 all:	$(OUTPUT_DIR)/preLoadSettingsMEP.pck $(OUTPUT_DIR)/preLoadSettingsDSi.pck $(OUTPUT_DIR)/preLoadSettings3DS.pck $(OUTPUT_DIR)/preLoadSettings3DS-en.pck $(OUTPUT_DIR)/preLoadSettings3DS-fr.pck $(OUTPUT_DIR)/preLoadSettings3DS-de.pck $(OUTPUT_DIR)/preLoadSettings3DS-it.pck $(OUTPUT_DIR)/preLoadSettings3DS-es.pck
 
@@ -52,3 +52,6 @@ $(OUTPUT_DIR)/preLoadSettings3DS-it.pck: $(FILES3DSIT)
 
 $(OUTPUT_DIR)/preLoadSettings3DS-es.pck: $(FILES3DSES)
 	$(PYTHON) pack.py $^ -o $@
+
+clean:
+	rm -f $(OUTPUT_DIR)/preLoadSettingsMEP.pck $(OUTPUT_DIR)/preLoadSettingsDSi.pck $(OUTPUT_DIR)/preLoadSettings3DS.pck $(OUTPUT_DIR)/preLoadSettings3DS-en.pck $(OUTPUT_DIR)/preLoadSettings3DS-fr.pck $(OUTPUT_DIR)/preLoadSettings3DS-de.pck $(OUTPUT_DIR)/preLoadSettings3DS-it.pck $(OUTPUT_DIR)/preLoadSettings3DS-es.pck

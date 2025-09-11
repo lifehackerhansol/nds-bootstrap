@@ -1,0 +1,183 @@
+BOOTLOADER_DEPS	:= \
+	load0 \
+	load2
+
+BOOTLOADERI_DEPS := \
+	loadi0 \
+	loadi2
+
+CARDENGINE_ARM7_DEPS := \
+	cardengine_arm7 \
+	cardengine_arm7_ace3dsp \
+	cardengine_arm7_music
+
+CARDENGINE_ARM9_DEPS := \
+	cardengine_arm9 \
+	cardengine_arm9_32 \
+	cardengine_arm9_start \
+	cardengine_arm9_start_foto \
+	cardengine_arm9_alt \
+	cardengine_arm9_alt_gsdd \
+	cardengine_arm9_alt2 \
+	cardengine_arm9_alt3 \
+	cardengine_arm9_extmem \
+	cardengine_arm9_extmem_gsdd \
+	cardengine_arm9_extmem_start \
+	cardengine_arm9_extmem_foto
+
+CARDENGINE_ARM9_IGM_DEPS := \
+	cardengine_arm9_igm \
+	cardengine_arm9_igm_extmem
+
+CARDENGINEI_ARM7_DEPS := \
+	cardenginei_arm7 \
+	cardenginei_arm7_alt \
+	cardenginei_arm7_twlsdk \
+	cardenginei_arm7_twlsdk3
+
+CARDENGINEI_ARM7_DSIWARE_DEPS := \
+	cardenginei_arm7_dsiware \
+	cardenginei_arm7_dsiware3
+
+CARDENGINEI_ARM7_CHEAT_DEPS := \
+	cardenginei_arm7_cheat
+
+CARDENGINEI_ARM9_DEPS := \
+	cardenginei_arm9 \
+	cardenginei_arm9_gsdd \
+	cardenginei_arm9_dldi \
+	cardenginei_arm9_gsdd_dldi \
+	cardenginei_arm9_twlsdk \
+	cardenginei_arm9_twlsdk3 \
+	cardenginei_arm9_twlsdk_dldi \
+	cardenginei_arm9_twlsdk3_dldi
+
+CARDENGINEI_ARM9_COLORLUT_DEPS := \
+	cardenginei_arm9_colorlut
+
+CARDENGINEI_ARM9_DSIWARE_DEPS := \
+	cardenginei_arm9_dsiware \
+	cardenginei_arm9_dsiware3
+
+CARDENGINEI_ARM9_IGM_DEPS := \
+	cardenginei_arm9_igm
+
+ASSETS := \
+	apfix \
+	apfixPostCardRead \
+	asyncLoadSettings \
+	dsi2dsSavePatches \
+	mobiclipOffsets \
+	preLoadSettings
+
+SUBTARGETS := \
+	$(BOOTLOADER_DEPS) \
+	$(BOOTLOADERI_DEPS) \
+	$(CARDENGINE_ARM7_DEPS) \
+	$(CARDENGINE_ARM9_DEPS) \
+	$(CARDENGINE_ARM9_IGM_DEPS) \
+	$(CARDENGINEI_ARM7_DEPS) \
+	$(CARDENGINEI_ARM7_DSIWARE_DEPS) \
+	$(CARDENGINEI_ARM7_CHEAT_DEPS) \
+	$(CARDENGINEI_ARM9_DEPS) \
+	$(CARDENGINEI_ARM9_COLORLUT_DEPS) \
+	$(CARDENGINEI_ARM9_DSIWARE_DEPS) \
+	$(CARDENGINEI_ARM9_IGM_DEPS) \
+	$(ASSETS)
+
+.PHONY: $(SUBTARGETS)
+
+#---------------------------------------------------------------------------------
+$(BOOTLOADER_DEPS):
+	$(V)$(MAKE) -f Makefile.bootloader TARGET=$@ --no-print-directory
+
+#---------------------------------------------------------------------------------
+$(BOOTLOADERI_DEPS):
+	$(V)$(MAKE) -f Makefile.bootloaderi TARGET=$@ --no-print-directory
+
+#---------------------------------------------------------------------------------
+$(CARDENGINE_ARM7_DEPS):
+	$(V)$(MAKE) -f Makefile.cardengine7 CARDENGINE=$(subst cardengine_,,$@) --no-print-directory
+
+#---------------------------------------------------------------------------------
+$(CARDENGINE_ARM9_IGM_DEPS):
+	$(V)$(MAKE) -f Makefile.cardengine9_igm CARDENGINE=$(subst cardengine_,,$@) --no-print-directory
+
+#---------------------------------------------------------------------------------
+$(CARDENGINE_ARM9_DEPS):
+	$(V)$(MAKE) -f Makefile.cardengine9 CARDENGINE=$(subst cardengine_,,$@) --no-print-directory
+
+#---------------------------------------------------------------------------------
+$(CARDENGINEI_ARM7_DEPS):
+	$(V)$(MAKE) -f Makefile.cardengine7i CARDENGINE=$(subst cardenginei_,,$@) --no-print-directory
+
+#---------------------------------------------------------------------------------
+$(CARDENGINEI_ARM7_DSIWARE_DEPS):
+	$(V)$(MAKE) -f Makefile.cardengine7i_dsiware CARDENGINE=$(subst cardenginei_,,$@) --no-print-directory
+
+#---------------------------------------------------------------------------------
+$(CARDENGINEI_ARM7_CHEAT_DEPS):
+	$(V)$(MAKE) -f Makefile.cardengine7i_cheat CARDENGINE=$(subst cardenginei_,,$@) --no-print-directory
+
+#---------------------------------------------------------------------------------
+$(CARDENGINEI_ARM9_DEPS):
+	$(V)$(MAKE) -f Makefile.cardengine9i CARDENGINE=$(subst cardenginei_,,$@) --no-print-directory
+
+#---------------------------------------------------------------------------------
+$(CARDENGINEI_ARM9_COLORLUT_DEPS):
+	$(V)$(MAKE) -f Makefile.cardengine9i_colorlut CARDENGINE=$(subst cardenginei_,,$@) --no-print-directory
+
+#---------------------------------------------------------------------------------
+$(CARDENGINEI_ARM9_IGM_DEPS):
+	$(V)$(MAKE) -f Makefile.cardengine9i_igm CARDENGINE=$(subst cardenginei_,,$@) --no-print-directory
+
+#---------------------------------------------------------------------------------
+$(CARDENGINEI_ARM9_DSIWARE_DEPS):
+	$(V)$(MAKE) -f Makefile.cardengine9i_dsiware CARDENGINE=$(subst cardenginei_,,$@) --no-print-directory
+
+$(ASSETS):
+	$(V)$(MAKE) -C $@
+
+define cardengine7_clean
+$(MAKE) -f Makefile.cardengine7 clean CARDENGINE=$(1) --no-print-directory;
+endef
+
+define cardengine9_clean
+$(MAKE) -f Makefile.cardengine9 clean CARDENGINE=$(1) --no-print-directory;
+endef
+
+define cardengine9_igm_clean
+$(MAKE) -f Makefile.cardengine9_igm clean CARDENGINE=$(1) --no-print-directory;
+endef
+
+define cardengine7i_clean
+$(MAKE) -f Makefile.cardengine7i clean CARDENGINE=$(1) --no-print-directory;
+endef
+
+define cardengine7i_cheat_clean
+$(MAKE) -f Makefile.cardengine7i_cheat clean CARDENGINE=$(1) --no-print-directory;
+endef
+
+define cardengine7i_dsiware_clean
+$(MAKE) -f Makefile.cardengine7i_dsiware clean CARDENGINE=$(1) --no-print-directory;
+endef
+
+define cardengine9i_clean
+$(MAKE) -f Makefile.cardengine9i clean CARDENGINE=$(1) --no-print-directory;
+endef
+
+define cardengine9i_colorlut_clean
+$(MAKE) -f Makefile.cardengine9i_colorlut clean CARDENGINE=$(1) --no-print-directory;
+endef
+
+define cardengine9i_dsiware_clean
+$(MAKE) -f Makefile.cardengine9i_dsiware clean CARDENGINE=$(1) --no-print-directory;
+endef
+
+define cardengine9i_igm_clean
+$(MAKE) -f Makefile.cardengine9i_igm clean CARDENGINE=$(1) --no-print-directory;
+endef
+
+define assets_clean
+$(MAKE) -C $(1) clean --no-print-directory;
+endef

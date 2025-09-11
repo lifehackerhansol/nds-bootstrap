@@ -68,6 +68,6 @@ void setExceptionHandler2() {
 		EXCEPTION_VECTOR = (ce9->valueBits & bypassExceptionHandler) ? 0 : enterException;
 	}
 	#endif
-	*exceptionC = userException;
+	exceptionC = userException;
 }
 
