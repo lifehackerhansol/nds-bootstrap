@@ -1,13 +1,14 @@
 #include <stdlib.h> // strtol
 #include <errno.h>
 #include <unistd.h>
+#include <sys/stat.h>
 //#include <stdio.h>
 #include <nds.h>
 #include <nds/arm9/dldi.h>
-#include "io_m3_common.h"
-#include "io_g6_common.h"
-#include "io_sc_common.h"
-#include "exptools.h"
+#include "flashcard/io_m3_common.h"
+#include "flashcard/io_g6_common.h"
+#include "flashcard/io_sc_common.h"
+#include "flashcard/exptools.h"
 #include <string>
 #include <string.h>
 #include <limits.h> // PATH_MAX
@@ -27,14 +28,13 @@
 #include "cheat_engine.h"
 #include "configuration.h"
 #include "conf_sd.h"
-#include "nitrofs.h"
+#include <filesystem.h>
 #include "igm_text.h"
 #include "locations.h"
 #include "version.h"
 
-#include "nandio.h"
-#include "f_xy.h"
-#include "dsi.h"
+#include "gm9i/f_xy.h"
+#include "twltool/dsi.h"
 #include "u128_math.h"
 
 #include "dsiwaresSetForBootloader.h"
@@ -202,9 +202,9 @@ static void createRamDumpBin(configuration* conf) {
 
 	if (getFileSize(ramDumpPath.c_str()) < ramDumpSize) {
 		myConsoleDemoInit();
-		iprintf("Allocating space for\n");
-		iprintf("creating a RAM dump.\n");
-		iprintf("Please wait...");
+		printf("Allocating space for\n");
+		printf("creating a RAM dump.\n");
+		printf("Please wait...");
 
 		if (access(ramDumpPath.c_str(), F_OK) == 0) {
 			remove(ramDumpPath.c_str());
@@ -219,7 +219,7 @@ static void createRamDumpBin(configuration* conf) {
 
 		consoleClear();
 		if (getFileSize(ramDumpPath.c_str()) < ramDumpSize) {
-			iprintf("Failed to create RAM dump file.");
+			printf("Failed to create RAM dump file.");
 			while (1) swiWaitForVBlank();
 		}
 	}
@@ -237,9 +237,9 @@ static void createApFixOverlayBin(configuration* conf) {
 
 	if (!conf->isDSiWare && getFileSize(apFixOverlaysPath.c_str()) < 0xA00000) {
 		myConsoleDemoInit();
-		iprintf("Allocating space for\n");
-		iprintf("AP-fixed overlays.\n");
-		iprintf("Please wait...");
+		printf("Allocating space for\n");
+		printf("AP-fixed overlays.\n");
+		printf("Please wait...");
 
 		if (access(apFixOverlaysPath.c_str(), F_OK) == 0) {
 			remove(apFixOverlaysPath.c_str());
@@ -254,8 +254,8 @@ static void createApFixOverlayBin(configuration* conf) {
 
 		consoleClear();
 		if (getFileSize(apFixOverlaysPath.c_str()) < 0xA00000) {
-			iprintf("Failed to allocate space\n");
-			iprintf("for AP-fixed overlays.");
+			printf("Failed to allocate space\n");
+			printf("for AP-fixed overlays.");
 			while (1) swiWaitForVBlank();
 		}
 	}
@@ -655,8 +655,7 @@ void getIgmStrings(configuration* conf, bool b4ds) {
 
 int loadFromSD(configuration* conf, const char *bootstrapPath) {
 	int rc = 0;
-	fatMountSimple("sd", &__my_io_dsisd);
-	fatMountSimple("fat", dldiGetInternal());
+	fatInitDefault();
 
 	conf->sdFound = (access("sd:/", F_OK) == 0);
 	const bool flashcardFound = (access("fat:/", F_OK) == 0);
@@ -664,7 +663,7 @@ int loadFromSD(configuration* conf, const char *bootstrapPath) {
 
 	if (!conf->sdFound && !flashcardFound) {
 		myConsoleDemoInit();
-		iprintf("FAT init failed!\n");
+		printf("FAT init failed!\n");
 		return -1;
 	}
 	nocashMessage("fatInitDefault");
@@ -675,7 +674,7 @@ int loadFromSD(configuration* conf, const char *bootstrapPath) {
 	}
 	if (!nitroFSInit(bootstrapPath)) {
 		myConsoleDemoInit();
-		iprintf("nitroFSInit failed!\n");
+		printf("nitroFSInit failed!\n");
 		return -1;
 	}
 	
@@ -979,7 +978,7 @@ int loadFromSD(configuration* conf, const char *bootstrapPath) {
 	if (!useTwlCfg && !conf->b4dsMode && isDSiMode() && conf->sdFound && conf->consoleModel < 2) {
 		bool sdNandFound = (conf->sdNand && access("sd:/shared1/TWLCFG0.dat", F_OK) == 0 && access("sd:/sys/HWINFO_N.dat", F_OK) == 0 && REG_SCFG_EXT7 == 0);
 		if (!sdNandFound) {
-			nandMounted = fatMountSimple("nand", &io_dsi_nand);
+			nandMounted = nandInit(true);
 		}
 
 		if (nandMounted || sdNandFound) {
@@ -990,7 +989,7 @@ int loadFromSD(configuration* conf, const char *bootstrapPath) {
 
 			u32 srBackendId[2] = {*(u32*)0x02000428, *(u32*)0x0200042C};
 			if ((srBackendId[0] != 0x53524C41 || srBackendId[1] != 0x00030004) && isDSiMode() && !nandMounted) {
-				nandMounted = fatMountSimple("nand", &io_dsi_nand);
+				nandMounted = nandInit(true);
 				if (nandMounted) {
 					twlCfgFile = fopen("nand:/shared1/TWLCFG0.dat", "rb");
 					fseek(twlCfgFile, 0x88, SEEK_SET);
@@ -1093,7 +1092,7 @@ int loadFromSD(configuration* conf, const char *bootstrapPath) {
 				&& (conf->dsiMode > 0 || conf->isDSiWare) && (a7mbk6 == (dsiEnhancedMbk ? 0x080037C0 : 0x00403000) || (romTid[0] == 'H' && ndsArm7Size < 0xC000 && ndsArm7idst == 0x02E80000 && (REG_MBK9 & 0x00FFFFFF) != 0x00FFFF0F))) {
 			if (romTid[0] == 'H' && ndsArm7Size < 0xC000 && ndsArm7idst == 0x02E80000) {
 				if (!nandMounted && strncmp((dsiEnhancedMbk ? conf->donorTwl0Path : conf->donorTwlOnly0Path), "nand:", 5) == 0) {
-					fatMountSimple("nand", &io_dsi_nand);
+					nandInit(true);
 				}
 				donorNdsFile = fopen(dsiEnhancedMbk ? conf->donorTwl0Path : conf->donorTwlOnly0Path, "rb"); // System titles can only use an SDK 5.0 donor ROM
 			} else if (strncmp(romTid, "KCX", 3) == 0 && dsiEnhancedMbk) {
@@ -1109,12 +1108,12 @@ int loadFromSD(configuration* conf, const char *bootstrapPath) {
 				|| (!dsiEnhancedMbk && ndsArm7Size == 0x29EE8)
 				);
 				if (!nandMounted && strncmp((sdk50 ? (dsiEnhancedMbk ? conf->donorTwl0Path : conf->donorTwlOnly0Path) : (dsiEnhancedMbk ? conf->donorTwlPath : conf->donorTwlOnlyPath)), "nand:", 5) == 0) {
-					nandMounted = fatMountSimple("nand", &io_dsi_nand);
+					nandMounted = nandInit(true);
 				}
 				donorNdsFile = fopen(sdk50 ? (dsiEnhancedMbk ? conf->donorTwl0Path : conf->donorTwlOnly0Path) : (dsiEnhancedMbk ? conf->donorTwlPath : conf->donorTwlOnlyPath), "rb");
 				if (!donorNdsFile) {
 					if (!nandMounted && (strncmp((sdk50 ? (dsiEnhancedMbk ? conf->donorTwlPath : conf->donorTwlOnlyPath) : (dsiEnhancedMbk ? conf->donorTwl0Path : conf->donorTwlOnly0Path)), "nand:", 5) == 0)) {
-						nandMounted = fatMountSimple("nand", &io_dsi_nand);
+						nandMounted = nandInit(true);
 					}
 					donorNdsFile = fopen(sdk50 ? (dsiEnhancedMbk ? conf->donorTwlPath : conf->donorTwlOnlyPath) : (dsiEnhancedMbk ? conf->donorTwl0Path : conf->donorTwlOnly0Path), "rb");
 				}
@@ -1508,8 +1507,8 @@ int loadFromSD(configuration* conf, const char *bootstrapPath) {
 			bool found = (access(pageFilePath.c_str(), F_OK) == 0);
 			if (!found) {
 				myConsoleDemoInit();
-				iprintf("Creating pagefile.sys\n");
-				iprintf("Please wait...\n");
+				printf("Creating pagefile.sys\n");
+				printf("Please wait...\n");
 			}
 
 			cebin = fopen(pageFilePath.c_str(), found ? "r+" : "wb");
@@ -1577,8 +1576,8 @@ int loadFromSD(configuration* conf, const char *bootstrapPath) {
 			bool found = (access(pageFilePath.c_str(), F_OK) == 0);
 			if (!found) {
 				myConsoleDemoInit();
-				iprintf("Creating pagefile.sys\n");
-				iprintf("Please wait...\n");
+				printf("Creating pagefile.sys\n");
+				printf("Please wait...\n");
 			}
 
 			cebin = fopen(pageFilePath.c_str(), found ? "r+" : "wb");
@@ -1660,8 +1659,8 @@ int loadFromSD(configuration* conf, const char *bootstrapPath) {
 				char buffer[2][0x100] = {{0}};
 
 				myConsoleDemoInit();
-				iprintf("Creating screenshots.tar\n");
-				iprintf("Please wait...");
+				printf("Creating screenshots.tar\n");
+				printf("Please wait...");
 
 				if (access(screenshotPath.c_str(), F_OK) == 0) {
 					remove(screenshotPath.c_str());
@@ -1689,7 +1688,7 @@ int loadFromSD(configuration* conf, const char *bootstrapPath) {
 
 				consoleClear();
 				if (getFileSize(screenshotPath.c_str()) < 0x4BCC00) {
-					iprintf("Failed to create screenshots.tar");
+					printf("Failed to create screenshots.tar");
 					while (1) swiWaitForVBlank();
 				}
 				igmText->currentScreenshot = 0;
@@ -1965,8 +1964,8 @@ int loadFromSD(configuration* conf, const char *bootstrapPath) {
 		bool found = (access(pageFilePath.c_str(), F_OK) == 0);
 		if (!found) {
 			myConsoleDemoInit();
-			iprintf("Creating pagefile.sys\n");
-			iprintf("Please wait...\n");
+			printf("Creating pagefile.sys\n");
+			printf("Please wait...\n");
 		}
 
 		cebin = fopen(pageFilePath.c_str(), found ? "r+" : "wb");
@@ -2009,8 +2008,8 @@ int loadFromSD(configuration* conf, const char *bootstrapPath) {
 				char buffer[2][0x100] = {{0}};
 
 				myConsoleDemoInit();
-				iprintf("Creating screenshots.tar\n");
-				iprintf("Please wait...");
+				printf("Creating screenshots.tar\n");
+				printf("Please wait...");
 
 				if (access(screenshotPath.c_str(), F_OK) == 0) {
 					remove(screenshotPath.c_str());
@@ -2038,7 +2037,7 @@ int loadFromSD(configuration* conf, const char *bootstrapPath) {
 
 				consoleClear();
 				if (getFileSize(screenshotPath.c_str()) < 0x4BCC00) {
-					iprintf("Failed to create screenshots.tar");
+					printf("Failed to create screenshots.tar");
 					while (1) swiWaitForVBlank();
 				}
 				igmText->currentScreenshot = 0;

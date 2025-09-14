@@ -17,7 +17,7 @@
     along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "exptools.h"
+#include "flashcard/exptools.h"
 
 #define _PSRAM 0x08060000 // an offset into PSRAM to write to so stuff doesn't get lost...
 

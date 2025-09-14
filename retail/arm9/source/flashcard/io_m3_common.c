@@ -30,7 +30,7 @@
  EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "io_m3_common.h"
+#include "flashcard/io_m3_common.h"
 
 static u16 _M3_readHalfword (u32 addr) {
 	return *((vu16*)addr);
